@@ -106,9 +106,9 @@ function formatSec(s) {
 const styles = StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   btn: { padding: 2 },
-  barBg: { flex: 1, height: 3, backgroundColor: 'rgba(192,132,252,0.15)', borderRadius: 2 },
-  barFill: { height: 3, backgroundColor: '#C084FC', borderRadius: 2 },
-  time: { color: '#9B8EC4', fontSize: 11, minWidth: 40 },
+  barBg: { flex: 1, height: 2, backgroundColor: '#222', borderRadius: 1 },
+  barFill: { height: 2, backgroundColor: '#c084fc', borderRadius: 1 },
+  time: { color: '#52525b', fontSize: 10, minWidth: 36 },
   noPreviewRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  noPreviewText: { color: '#4A3F6B', fontSize: 11, fontStyle: 'italic' },
+  noPreviewText: { color: '#52525b', fontSize: 11 },
 });

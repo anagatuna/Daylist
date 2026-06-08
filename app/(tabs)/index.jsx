@@ -120,36 +120,25 @@ export default function HomeScreen() {
         {/* ── Header ── */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.eyebrow}>Tu soundtrack ✨</Text>
-              <Text style={styles.logo}>daylist</Text>
-            </View>
-            <TouchableOpacity onPress={() => router.push('/post/create')} activeOpacity={0.85}>
-              <LinearGradient colors={Colors.gradientPrimary} style={styles.addBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                <Ionicons name="add" size={22} color="#fff" />
-              </LinearGradient>
+            <Text style={styles.logo}>daylist</Text>
+            <TouchableOpacity onPress={() => router.push('/post/create')} style={styles.addBtn}>
+              <Ionicons name="add" size={20} color={Colors.textPrimary} />
             </TouchableOpacity>
           </View>
-
-          <Text style={styles.dateTitle}>{dayName}</Text>
-          <Text style={styles.dateSub}>{dayNum} de {month}</Text>
-
-          <LinearGradient
-            colors={remaining === 0 ? ['rgba(52,211,153,0.15)', 'rgba(52,211,153,0.05)'] : ['rgba(192,132,252,0.1)', 'rgba(244,114,182,0.05)']}
-            style={styles.statusChip}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <Text style={styles.dateTitle}>{dayName}, {dayNum} de {month}</Text>
+          <View style={styles.statusRow}>
             <View style={[styles.statusDot, { backgroundColor: remaining === 0 ? '#34D399' : Colors.primary }]} />
             <Text style={styles.statusText}>
-              {remaining === 0 ? '✨ Día completo' : `${remaining} momento${remaining !== 1 ? 's' : ''} por registrar`}
+              {remaining === 0 ? 'Día completo' : `${remaining} ${remaining === 1 ? 'momento' : 'momentos'} por agregar`}
             </Text>
-          </LinearGradient>
+          </View>
         </View>
 
         <View style={styles.divider} />
 
         {/* ── Mis canciones ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>✦ MIS MOMENTOS</Text>
+          <Text style={styles.sectionHeader}>HOY</Text>
           {loading ? (
             <ActivityIndicator color={Colors.primary} />
           ) : myPost ? (
@@ -172,19 +161,22 @@ export default function HomeScreen() {
         {friendPosts.length > 0 && (
           <View style={styles.section}>
             <View style={styles.divider} />
-            <Text style={styles.sectionHeader}>✦ HOY EN TU RED</Text>
+            <Text style={styles.sectionHeader}>TU RED</Text>
             {friendPosts.map(post => (
               <View key={post.id} style={styles.friendPost}>
                 <TouchableOpacity style={styles.friendHeader} onPress={() => router.push(`/user/${post.uid}`)}>
                   {post.avatar ? (
                     <Image source={{ uri: post.avatar }} style={styles.avatarImg} />
                   ) : (
-                    <LinearGradient colors={Colors.gradientPrimary} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                    <View style={styles.avatarFallback}>
                       <Text style={styles.avatarText}>{post.displayName?.[0]?.toUpperCase()}</Text>
-                    </LinearGradient>
+                    </View>
                   )}
-                  <Text style={styles.friendName}>{post.displayName}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.friendName}>{post.displayName}</Text>
+                    <Text style={styles.friendSub}>Publicó hoy</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
                 </TouchableOpacity>
                 {SLOTS_META.map(({ key }) =>
                   post.songs?.[key] ? <SongCard key={key} song={post.songs[key]} slot={key} /> : null
@@ -197,8 +189,7 @@ export default function HomeScreen() {
 
         {!loading && friendPosts.length === 0 && filled > 0 && (
           <View style={styles.emptyFriends}>
-            <Text style={styles.emptyFriendsEmoji}>🌸</Text>
-            <Text style={styles.emptyFriendsText}>Agrega amigos para ver sus canciones del día</Text>
+            <Text style={styles.emptyFriendsText}>Agrega amigos para ver su soundtrack del día</Text>
           </View>
         )}
       </ScrollView>
@@ -209,28 +200,26 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingBottom: 48 },
-  header: { paddingTop: Platform.OS === 'ios' ? 12 : 20, marginBottom: 20 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  eyebrow: { fontSize: 12, color: Colors.textMuted, fontWeight: '500', marginBottom: 2 },
-  logo: { fontSize: 32, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1.5 },
-  addBtn: { borderRadius: 14, padding: 10 },
-  dateTitle: { fontSize: 34, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -0.5 },
-  dateSub: { fontSize: 14, color: Colors.textSecondary, marginTop: 2, marginBottom: 16 },
-  statusChip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', borderRadius: Radius.pill, paddingHorizontal: 14, paddingVertical: 7, gap: 7, borderWidth: 1, borderColor: 'rgba(192,132,252,0.15)' },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginBottom: 24 },
+  content: { paddingHorizontal: 16, paddingBottom: 48 },
+  header: { paddingTop: Platform.OS === 'ios' ? 8 : 16, paddingHorizontal: 4, marginBottom: 20 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  logo: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1 },
+  addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border },
+  dateTitle: { fontSize: 14, color: Colors.textSecondary, fontWeight: '400' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  statusDot: { width: 5, height: 5, borderRadius: 3 },
+  statusText: { fontSize: 12, color: Colors.textMuted },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginBottom: 20 },
   section: { marginBottom: 8 },
-  sectionHeader: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, letterSpacing: 1.5, marginBottom: 14 },
+  sectionHeader: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, letterSpacing: 1.5, marginBottom: 14, paddingHorizontal: 4 },
   blocksGroup: {},
-  friendPost: { marginBottom: 28 },
-  friendHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  avatarImg: { width: 36, height: 36, borderRadius: 18 },
-  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  friendName: { flex: 1, color: Colors.textPrimary, fontWeight: '600', fontSize: 15 },
-  emptyFriends: { alignItems: 'center', marginTop: 40, gap: 8 },
-  emptyFriendsEmoji: { fontSize: 36 },
-  emptyFriendsText: { color: Colors.textMuted, fontSize: 13, textAlign: 'center' },
+  friendPost: { marginBottom: 24 },
+  friendHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12, paddingHorizontal: 4 },
+  avatarImg: { width: 38, height: 38, borderRadius: 19 },
+  avatarFallback: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderLight },
+  avatarText: { color: Colors.primary, fontWeight: '700', fontSize: 15 },
+  friendName: { color: Colors.textPrimary, fontWeight: '600', fontSize: 14 },
+  friendSub: { color: Colors.textMuted, fontSize: 11, marginTop: 1 },
+  emptyFriends: { alignItems: 'center', marginTop: 40, paddingHorizontal: 20 },
+  emptyFriendsText: { color: Colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20 },
 });

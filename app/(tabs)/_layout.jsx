@@ -45,15 +45,15 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: 'rgba(22,17,43,0.95)',
+          backgroundColor: Colors.bg,
           borderTopColor: Colors.border,
-          borderTopWidth: 1,
-          height: 60,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          height: 58,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: Colors.primary,
+        tabBarActiveTintColor: Colors.textPrimary,
         tabBarInactiveTintColor: Colors.textMuted,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
         headerStyle: { backgroundColor: Colors.bg },
         headerTintColor: Colors.textPrimary,
         headerShadowVisible: false,
