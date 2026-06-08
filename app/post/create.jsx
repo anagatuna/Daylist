@@ -5,11 +5,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { searchTracks, serializeTrack } from '@/lib/itunes';
 import { notifyFriends } from '@/lib/notifications';
+import { getLyrics } from '@/lib/musixmatch';
 import AudioPlayer from '@/components/AudioPlayer';
+import { Colors, Radius } from '@/constants/Theme';
 
 const SLOTS = [
   { key: 'morning', label: '🌅 Mañana' },
@@ -24,11 +27,11 @@ export default function CreatePostScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [phraseModal, setPhraseModal] = useState(null); // slot key
+  const [phraseModal, setPhraseModal] = useState(null);
   const [phrase, setPhrase] = useState('');
-  const [fragmentModal, setFragmentModal] = useState(null); // slot key
-  const [startSec, setStartSec] = useState('0');
-  const [endSec, setEndSec] = useState('30');
+  const [lyricModal, setLyricModal] = useState(null); // slot key
+  const [lyricLines, setLyricLines] = useState([]);
+  const [loadingLyrics, setLoadingLyrics] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Cargar post de hoy si ya existe
@@ -72,7 +75,7 @@ export default function CreatePostScreen() {
     const serialized = serializeTrack(track);
     setSongs((prev) => ({
       ...prev,
-      [activeSlot]: { ...serialized, phrase: '', startSec: 0, endSec: null },
+      [activeSlot]: { ...serialized, phrase: '', lyricSnippet: null },
     }));
     setActiveSlot(null);
     setResults([]);
@@ -92,21 +95,39 @@ export default function CreatePostScreen() {
     setPhraseModal(null);
   }
 
-  function openFragmentModal(slot) {
-    const s = songs[slot];
-    setStartSec(String(s?.startSec ?? 0));
-    setEndSec(s?.endSec != null ? String(s.endSec) : '30');
-    setFragmentModal(slot);
+  async function openLyricModal(slot) {
+    setLyricModal(slot);
+    setLyricLines([]);
+    setLoadingLyrics(true);
+    const song = songs[slot];
+    const text = await getLyrics(song.name, song.artist);
+    if (text) {
+      const lines = text
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l && !l.startsWith('*') && !l.startsWith('('));
+      setLyricLines(lines);
+    }
+    setLoadingLyrics(false);
   }
 
-  function saveFragment() {
-    const s = parseFloat(startSec) || 0;
-    const e = parseFloat(endSec) || null;
-    setSongs((prev) => ({
-      ...prev,
-      [fragmentModal]: { ...prev[fragmentModal], startSec: s, endSec: e },
+  function toggleLyricLine(line) {
+    const current = songs[lyricModal]?.lyricSnippet ?? [];
+    const arr = Array.isArray(current) ? current : current ? [current] : [];
+    const exists = arr.includes(line);
+    setSongs(p => ({
+      ...p,
+      [lyricModal]: {
+        ...p[lyricModal],
+        lyricSnippet: exists ? arr.filter(l => l !== line) : [...arr, line],
+      },
     }));
-    setFragmentModal(null);
+  }
+
+  function getSelectedLines(slot) {
+    const s = songs[slot]?.lyricSnippet;
+    if (!s) return [];
+    return Array.isArray(s) ? s : [s];
   }
 
   async function publish() {
@@ -176,14 +197,16 @@ export default function CreatePostScreen() {
           <TextInput
             style={styles.searchInput}
             placeholder="Artista, canción..."
-            placeholderTextColor="#555"
+            placeholderTextColor={Colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={search}
             returnKeyType="search"
           />
-          <TouchableOpacity style={styles.searchBtn} onPress={search}>
-            {searching ? <ActivityIndicator color="#000" /> : <Ionicons name="search" size={20} color="#000" />}
+          <TouchableOpacity onPress={search} activeOpacity={0.85}>
+            <LinearGradient colors={Colors.gradientPrimary} style={styles.searchBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              {searching ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="search" size={18} color="#fff" />}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -250,14 +273,23 @@ export default function CreatePostScreen() {
                       {songs[key].phrase ? 'Editar frase' : 'Agregar frase'}
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionBtn} onPress={() => openFragmentModal(key)}>
-                    <Ionicons name="cut-outline" size={14} color="#888" />
-                    <Text style={styles.actionBtnText}>Fragmento</Text>
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => openLyricModal(key)}>
+                    <Ionicons name="text-outline" size={14} color={Colors.textSecondary} />
+                    <Text style={styles.actionBtnText}>
+                      {getSelectedLines(key).length > 0 ? 'Editar destacado' : 'Destacar letra'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 {songs[key].phrase ? (
                   <Text style={styles.phrasePreview}>"{songs[key].phrase}"</Text>
+                ) : null}
+
+                {getSelectedLines(key).length > 0 ? (
+                  <View style={styles.lyricSnippetPreview}>
+                    <Ionicons name="musical-note" size={12} color={Colors.primary} />
+                    <Text style={styles.lyricSnippetText}>{getSelectedLines(key).length} líneas destacadas en la letra</Text>
+                  </View>
                 ) : null}
               </View>
             ) : (
@@ -271,8 +303,10 @@ export default function CreatePostScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.publishBtn} onPress={publish} disabled={saving}>
-          {saving ? <ActivityIndicator color="#000" /> : <Text style={styles.publishBtnText}>Publicar</Text>}
+        <TouchableOpacity onPress={publish} disabled={saving} activeOpacity={0.85}>
+          <LinearGradient colors={Colors.gradientPrimary} style={styles.publishBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishBtnText}>Publicar ✨</Text>}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -288,66 +322,75 @@ export default function CreatePostScreen() {
           <TextInput
             style={styles.phraseInput}
             placeholder="¿Qué te transmite esta canción?"
-            placeholderTextColor="#555"
+            placeholderTextColor={Colors.textMuted}
             value={phrase}
             onChangeText={setPhrase}
             multiline
             maxLength={200}
           />
           <Text style={styles.charCount}>{phrase.length}/200</Text>
-          <TouchableOpacity style={styles.saveBtn} onPress={savePhrase}>
-            <Text style={styles.saveBtnText}>Guardar</Text>
+          <TouchableOpacity onPress={savePhrase} activeOpacity={0.85}>
+            <LinearGradient colors={Colors.gradientPrimary} style={styles.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <Text style={styles.saveBtnText}>Guardar</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </Modal>
 
-      {/* Fragment modal */}
-      <Modal visible={!!fragmentModal} animationType="slide" presentationStyle="pageSheet">
+      {/* Lyric picker modal */}
+      <Modal visible={!!lyricModal} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Elegir fragmento</Text>
-            <TouchableOpacity onPress={() => setFragmentModal(null)}>
-              <Ionicons name="close" size={24} color="#fff" />
+            <View>
+              <Text style={styles.modalTitle}>Elige una línea ✨</Text>
+              <Text style={styles.modalSub}>Toca la letra que quieres mostrar en tu post</Text>
+            </View>
+            <TouchableOpacity onPress={() => setLyricModal(null)}>
+              <Ionicons name="close" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.modalSub}>Define el inicio y fin del fragmento (en segundos)</Text>
 
-          {fragmentModal && songs[fragmentModal]?.previewUrl && (
-            <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-              <AudioPlayer
-                previewUrl={songs[fragmentModal].previewUrl}
-                startSec={parseFloat(startSec) || 0}
-                endSec={parseFloat(endSec) || null}
-              />
+          {lyricModal && getSelectedLines(lyricModal).length > 0 ? (
+            <View style={styles.currentSnippet}>
+              <View style={styles.currentSnippetHeader}>
+                <Text style={styles.currentSnippetLabel}>{getSelectedLines(lyricModal).length} líneas seleccionadas</Text>
+                <TouchableOpacity onPress={() => setSongs(p => ({ ...p, [lyricModal]: { ...p[lyricModal], lyricSnippet: [] } }))}>
+                  <Text style={styles.clearSnippet}>Limpiar todo</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+          ) : null}
+
+          {!loadingLyrics && lyricLines.length > 0 && (
+            <TouchableOpacity onPress={() => setLyricModal(null)} activeOpacity={0.85} style={{ paddingHorizontal: 20, marginBottom: 8 }}>
+              <LinearGradient colors={Colors.gradientPrimary} style={[styles.saveBtn, { marginTop: 0 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <Text style={styles.saveBtnText}>Listo ✨</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           )}
 
-          <View style={styles.fragmentRow}>
-            <View style={styles.fragmentField}>
-              <Text style={styles.fragmentLabel}>Inicio (seg)</Text>
-              <TextInput
-                style={styles.fragmentInput}
-                value={startSec}
-                onChangeText={setStartSec}
-                keyboardType="numeric"
-              />
+          {loadingLyrics ? (
+            <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+          ) : lyricLines.length > 0 ? (
+            <FlatList
+              data={lyricLines}
+              keyExtractor={(_, i) => String(i)}
+              contentContainerStyle={styles.lyricsList}
+              renderItem={({ item }) => (
+                <LyricLineItem
+                  item={item}
+                  selected={lyricModal ? getSelectedLines(lyricModal) : []}
+                  maxReached={false}
+                  onToggle={toggleLyricLine}
+                />
+              )}
+            />
+          ) : (
+            <View style={styles.noLyricsEmpty}>
+              <Text style={{ fontSize: 36 }}>🎵</Text>
+              <Text style={styles.noLyricsText}>Letra no disponible para esta canción</Text>
             </View>
-            <View style={styles.fragmentField}>
-              <Text style={styles.fragmentLabel}>Fin (seg)</Text>
-              <TextInput
-                style={styles.fragmentInput}
-                value={endSec}
-                onChangeText={setEndSec}
-                keyboardType="numeric"
-                placeholder="30"
-                placeholderTextColor="#555"
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.saveBtn} onPress={saveFragment}>
-            <Text style={styles.saveBtnText}>Guardar fragmento</Text>
-          </TouchableOpacity>
+          )}
         </View>
       </Modal>
     </View>
@@ -355,51 +398,75 @@ export default function CreatePostScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  container: { flex: 1, backgroundColor: Colors.bg },
   scroll: { padding: 20, paddingBottom: 100 },
-  title: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 24 },
+  title: { color: Colors.textPrimary, fontSize: 22, fontWeight: '800', marginBottom: 24 },
   slotSection: { marginBottom: 20 },
-  slotLabel: { color: '#888', fontSize: 13, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  addBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#141414', borderRadius: 12, padding: 16,
-    borderWidth: 1, borderColor: '#222', borderStyle: 'dashed',
-  },
-  addBtnText: { color: '#1DB954', fontSize: 15 },
-  selectedCard: { backgroundColor: '#141414', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#222' },
+  slotLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 16, borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)', borderStyle: 'dashed' },
+  addBtnText: { color: Colors.primary, fontSize: 15 },
+  selectedCard: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: Colors.border },
   selectedRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  selectedCover: { width: 60, height: 60, borderRadius: 8 },
-  selectedName: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  selectedArtist: { color: '#1DB954', fontSize: 12, marginTop: 2 },
+  selectedCover: { width: 60, height: 60, borderRadius: Radius.sm },
+  selectedName: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
+  selectedArtist: { color: Colors.primary, fontSize: 12, marginTop: 2 },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  actionBtnText: { color: '#888', fontSize: 12 },
-  phrasePreview: { color: '#aaa', fontStyle: 'italic', fontSize: 13, marginTop: 8 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: '#0a0a0a', borderTopWidth: 1, borderTopColor: '#1a1a1a' },
-  publishBtn: { backgroundColor: '#1DB954', borderRadius: 12, padding: 16, alignItems: 'center' },
-  publishBtnText: { color: '#000', fontWeight: '700', fontSize: 16 },
+  actionBtnText: { color: Colors.textSecondary, fontSize: 12 },
+  phrasePreview: { color: Colors.textSecondary, fontStyle: 'italic', fontSize: 13, marginTop: 8 },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: Colors.bg, borderTopWidth: 1, borderTopColor: Colors.border },
+  publishBtn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', overflow: 'hidden' },
+  publishBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingTop: 20 },
-  searchTitle: { color: '#fff', fontSize: 16, fontWeight: '600', flex: 1 },
+  searchTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '600', flex: 1 },
   searchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 8 },
-  searchInput: { flex: 1, backgroundColor: '#1a1a1a', borderRadius: 10, padding: 12, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: '#2a2a2a' },
-  searchBtn: { backgroundColor: '#1DB954', borderRadius: 10, padding: 12, justifyContent: 'center', alignItems: 'center' },
-  resultItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#141414', borderRadius: 10, padding: 10 },
-  resultCover: { width: 50, height: 50, borderRadius: 6 },
-  resultName: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  resultArtist: { color: '#1DB954', fontSize: 12 },
-  resultAlbum: { color: '#555', fontSize: 11 },
-  modal: { flex: 1, backgroundColor: '#0a0a0a', padding: 20, paddingTop: 50 },
+  searchInput: { flex: 1, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 13, color: Colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: Colors.border },
+  searchBtn: { borderRadius: Radius.md, padding: 13, justifyContent: 'center', alignItems: 'center', width: 48 },
+  resultItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 12, borderWidth: 1, borderColor: Colors.border },
+  resultCover: { width: 50, height: 50, borderRadius: Radius.sm },
+  resultName: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
+  resultArtist: { color: Colors.primary, fontSize: 12 },
+  resultAlbum: { color: Colors.textMuted, fontSize: 11 },
+  modal: { flex: 1, backgroundColor: Colors.bg, padding: 20, paddingTop: 50 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  modalSub: { color: '#888', fontSize: 14, marginBottom: 20 },
-  phraseInput: { backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16, color: '#fff', fontSize: 15, minHeight: 120, textAlignVertical: 'top', borderWidth: 1, borderColor: '#2a2a2a' },
-  charCount: { color: '#555', fontSize: 12, textAlign: 'right', marginTop: 4 },
-  saveBtn: { backgroundColor: '#1DB954', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 24 },
-  saveBtnText: { color: '#000', fontWeight: '700', fontSize: 16 },
-  fragmentRow: { flexDirection: 'row', gap: 16, marginBottom: 8 },
-  fragmentField: { flex: 1 },
-  fragmentLabel: { color: '#888', fontSize: 13, marginBottom: 6 },
-  fragmentInput: { backgroundColor: '#1a1a1a', borderRadius: 10, padding: 14, color: '#fff', fontSize: 16, borderWidth: 1, borderColor: '#2a2a2a' },
-  previewBadge: { color: '#1DB954', fontSize: 11, marginTop: 3, fontWeight: '600' },
-  noPreviewBadge: { color: '#444', fontSize: 11, marginTop: 3 },
+  modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
+  modalSub: { color: Colors.textSecondary, fontSize: 14, marginBottom: 20 },
+  phraseInput: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: 16, color: Colors.textPrimary, fontSize: 15, minHeight: 120, textAlignVertical: 'top', borderWidth: 1, borderColor: Colors.border },
+  charCount: { color: Colors.textMuted, fontSize: 12, textAlign: 'right', marginTop: 4 },
+  saveBtn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', marginTop: 24 },
+  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  previewBadge: { color: Colors.primary, fontSize: 11, marginTop: 3, fontWeight: '600' },
+  noPreviewBadge: { color: Colors.textMuted, fontSize: 11, marginTop: 3 },
+  lyricSnippetPreview: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 8, backgroundColor: 'rgba(192,132,252,0.08)', borderRadius: Radius.sm, padding: 8, borderLeftWidth: 2, borderLeftColor: Colors.primary },
+  lyricSnippetText: { color: Colors.textSecondary, fontSize: 12, fontStyle: 'italic', flex: 1, lineHeight: 18 },
+  currentSnippet: { marginHorizontal: 20, marginBottom: 16, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)' },
+  currentSnippetLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  currentSnippetText: { color: Colors.primary, fontSize: 14, fontStyle: 'italic', lineHeight: 20 },
+  clearSnippet: { color: Colors.secondary, fontSize: 12, marginTop: 8, fontWeight: '600' },
+  lyricsList: { paddingHorizontal: 20, paddingBottom: 40, gap: 4 },
+  lyricLine: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: Radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  lyricLineSelected: { backgroundColor: 'rgba(192,132,252,0.12)', borderWidth: 1, borderColor: 'rgba(192,132,252,0.4)' },
+  lyricLineText: { color: Colors.textSecondary, fontSize: 15, lineHeight: 22, flex: 1 },
+  lyricLineTextSelected: { color: Colors.textPrimary, fontWeight: '600' },
+  lyricLineDisabled: { opacity: 0.3 },
+  lyricLineTextDisabled: { color: Colors.textMuted },
+  currentSnippetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  noLyricsEmpty: { alignItems: 'center', marginTop: 50, gap: 10 },
+  noLyricsText: { color: Colors.textMuted, fontSize: 14, textAlign: 'center' },
 });
+
+function LyricLineItem({ item, selected, maxReached, onToggle }) {
+  const isSelected = selected.includes(item);
+  const disabled = maxReached && !isSelected;
+  return (
+    <TouchableOpacity
+      style={[styles.lyricLine, isSelected && styles.lyricLineSelected, disabled && styles.lyricLineDisabled]}
+      onPress={() => !disabled && onToggle(item)}
+      activeOpacity={disabled ? 1 : 0.7}>
+      <Text style={[styles.lyricLineText, isSelected && styles.lyricLineTextSelected, disabled && styles.lyricLineTextDisabled]}>
+        {item}
+      </Text>
+      {isSelected && <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />}
+    </TouchableOpacity>
+  );
+}
