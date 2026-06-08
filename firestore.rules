@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if isAuth();
+      allow create: if isOwner(uid);
+      allow update: if isAuth(); // amigos pueden enviar solicitudes
+    }
+
+    match /posts/{postId} {
+      allow read: if isAuth();
+      allow create: if isOwner(request.resource.data.uid);
+      allow update, delete: if isOwner(resource.data.uid);
+    }
+  }
+}
