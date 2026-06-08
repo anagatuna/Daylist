@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert,
+  TextInput, ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -113,9 +113,13 @@ export default function FriendsScreen() {
   function UserRow({ item, right }) {
     return (
       <TouchableOpacity style={styles.userRow} onPress={() => router.push(`/user/${item.id}`)} activeOpacity={0.7}>
-        <LinearGradient colors={Colors.gradientPrimary} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <Text style={styles.avatarText}>{item.displayName?.[0]?.toUpperCase()}</Text>
-        </LinearGradient>
+        {item.avatar ? (
+          <Image source={{ uri: item.avatar }} style={styles.avatarImg} />
+        ) : (
+          <LinearGradient colors={Colors.gradientPrimary} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <Text style={styles.avatarText}>{item.displayName?.[0]?.toUpperCase()}</Text>
+          </LinearGradient>
+        )}
         <Text style={[styles.userName, { flex: 1 }]}>{item.displayName}</Text>
         {right}
       </TouchableOpacity>
@@ -243,6 +247,7 @@ const styles = StyleSheet.create({
   tabIndicator: { position: 'absolute', bottom: 0, left: 16, right: 16, height: 2, borderRadius: 1 },
   list: { padding: 16, gap: 8 },
   userRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: Colors.border },
+  avatarImg: { width: 42, height: 42, borderRadius: 21 },
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 17 },
   userName: { color: Colors.textPrimary, fontSize: 15, fontWeight: '500' },

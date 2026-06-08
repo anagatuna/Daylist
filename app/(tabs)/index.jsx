@@ -189,7 +189,7 @@ export default function HomeScreen() {
                 {SLOTS_META.map(({ key }) =>
                   post.songs?.[key] ? <SongCard key={key} song={post.songs[key]} slot={key} /> : null
                 )}
-                <Reactions postId={post.id} reactions={post.reactions ?? {}} />
+                <Reactions postId={post.id} reactions={post.reactions ?? {}} postOwnerUid={post.uid} />
               </View>
             ))}
           </View>

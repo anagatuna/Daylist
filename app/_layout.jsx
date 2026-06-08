@@ -4,6 +4,17 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { registerPushToken } from '@/lib/notifications';
+import { Colors } from '@/constants/Theme';
+
+const headerTheme = {
+  headerStyle: { backgroundColor: Colors.bg },
+  headerTintColor: Colors.textPrimary,
+  headerShadowVisible: false,
+  headerBackTitle: '',
+  headerBackTitleVisible: false,
+  headerBackButtonDisplayMode: 'minimal',
+  headerTitleStyle: { color: Colors.textPrimary, fontWeight: '700' },
+};
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,6 +51,8 @@ export default function RootLayout() {
       const data = response.notification.request.content.data;
       if (data?.type === 'friend_request') {
         router.push('/(tabs)/friends');
+      } else if (data?.type === 'reaction') {
+        router.push('/(tabs)/profile');
       } else if (data?.uid) {
         router.push(`/user/${data.uid}`);
       }
@@ -55,9 +68,9 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="post/create" options={{ presentation: 'modal', headerShown: true, title: 'Nueva publicación' }} />
-      <Stack.Screen name="user/[uid]" options={{ headerShown: true, title: '' }} />
-      <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Editar perfil', presentation: 'modal' }} />
+      <Stack.Screen name="post/create" options={{ presentation: 'modal', headerShown: true, title: 'Nueva publicación', ...headerTheme }} />
+      <Stack.Screen name="user/[uid]" options={{ headerShown: true, title: '', ...headerTheme }} />
+      <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Editar perfil', presentation: 'modal', ...headerTheme }} />
     </Stack>
   );
 }

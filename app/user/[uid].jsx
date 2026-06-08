@@ -111,7 +111,7 @@ export default function UserProfileScreen() {
             {SLOTS.map(slot =>
               item.songs?.[slot] ? <SongCard key={slot} song={item.songs[slot]} slot={slot} /> : null
             )}
-            <Reactions postId={item.id} reactions={item.reactions ?? {}} />
+            <Reactions postId={item.id} reactions={item.reactions ?? {}} postOwnerUid={uid} />
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>Este usuario no ha publicado nada</Text>}
