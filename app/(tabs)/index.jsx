@@ -1,17 +1,19 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Platform, ScrollView, StatusBar, StyleSheet, Text, View,
-  TouchableOpacity, ActivityIndicator, RefreshControl, FlatList,
+  TouchableOpacity, ActivityIndicator, RefreshControl, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
+import { Colors, Radius } from '@/constants/Theme';
 
 const SLOTS_META = [
   { key: 'morning',   label: 'Mañana',   emoji: '☀️' },
@@ -113,79 +115,79 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#1DB954" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.primary} />}
       >
-        {/* ── Encabezado ── */}
+        {/* ── Header ── */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <Text style={styles.logo}>daylist</Text>
-            <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/post/create')}>
-              <Ionicons name="add" size={22} color="#000" />
+            <View>
+              <Text style={styles.eyebrow}>Tu soundtrack ✨</Text>
+              <Text style={styles.logo}>daylist</Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/post/create')} activeOpacity={0.85}>
+              <LinearGradient colors={Colors.gradientPrimary} style={styles.addBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <Ionicons name="add" size={22} color="#fff" />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
-          <Text style={styles.eyebrow}>Tu soundtrack</Text>
-          <Text style={styles.title}>{dayName}</Text>
-          <Text style={styles.subtitle}>{dayNum} de {month}</Text>
 
-          <View style={styles.statusChip}>
-            <View style={[styles.statusDot, { backgroundColor: remaining === 0 ? '#30D158' : '#636366' }]} />
+          <Text style={styles.dateTitle}>{dayName}</Text>
+          <Text style={styles.dateSub}>{dayNum} de {month}</Text>
+
+          <LinearGradient
+            colors={remaining === 0 ? ['rgba(52,211,153,0.15)', 'rgba(52,211,153,0.05)'] : ['rgba(192,132,252,0.1)', 'rgba(244,114,182,0.05)']}
+            style={styles.statusChip}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            <View style={[styles.statusDot, { backgroundColor: remaining === 0 ? '#34D399' : Colors.primary }]} />
             <Text style={styles.statusText}>
-              {remaining === 0 ? 'Día completo' : `${remaining} momento${remaining !== 1 ? 's' : ''} por registrar`}
+              {remaining === 0 ? '✨ Día completo' : `${remaining} momento${remaining !== 1 ? 's' : ''} por registrar`}
             </Text>
-          </View>
+          </LinearGradient>
         </View>
 
-        <View style={styles.separator} />
+        <View style={styles.divider} />
 
-        {/* ── Mis canciones del día ── */}
+        {/* ── Mis canciones ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>MIS MOMENTOS DEL DÍA</Text>
+          <Text style={styles.sectionHeader}>✦ MIS MOMENTOS</Text>
           {loading ? (
-            <ActivityIndicator color="#1DB954" />
+            <ActivityIndicator color={Colors.primary} />
           ) : myPost ? (
-            // Si ya publiqué hoy, mostrar con SongCard (tiene player, letra, Spotify)
             SLOTS_META.map(({ key }) =>
-              myPost.songs?.[key] ? (
-                <SongCard key={key} song={myPost.songs[key]} slot={key} />
-              ) : null
+              myPost.songs?.[key] ? <SongCard key={key} song={myPost.songs[key]} slot={key} /> : null
             )
           ) : (
-            // Si no he publicado, mostrar los slots vacíos con TrackBlock
             <View style={styles.blocksGroup}>
               {mySlots.map((slot, i) => (
                 <React.Fragment key={slot.timeOfDay}>
-                  <TrackBlock
-                    slot={slot}
-                    onAdd={() => router.push('/post/create')}
-                    onPlay={() => {}}
-                  />
-                  {i < mySlots.length - 1 && <View style={styles.inlineSeparator} />}
+                  <TrackBlock slot={slot} onAdd={() => router.push('/post/create')} onPlay={() => {}} />
+                  {i < mySlots.length - 1 && <View style={{ height: 10 }} />}
                 </React.Fragment>
               ))}
             </View>
           )}
         </View>
 
-        {/* ── Feed de amigos ── */}
+        {/* ── Feed amigos ── */}
         {friendPosts.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.separator} />
-            <Text style={styles.sectionHeader}>HOY EN TU RED</Text>
+            <View style={styles.divider} />
+            <Text style={styles.sectionHeader}>✦ HOY EN TU RED</Text>
             {friendPosts.map(post => (
               <View key={post.id} style={styles.friendPost}>
-                <TouchableOpacity
-                  style={styles.friendHeader}
-                  onPress={() => router.push(`/user/${post.uid}`)}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{post.displayName?.[0]?.toUpperCase()}</Text>
-                  </View>
+                <TouchableOpacity style={styles.friendHeader} onPress={() => router.push(`/user/${post.uid}`)}>
+                  {post.avatar ? (
+                    <Image source={{ uri: post.avatar }} style={styles.avatarImg} />
+                  ) : (
+                    <LinearGradient colors={Colors.gradientPrimary} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                      <Text style={styles.avatarText}>{post.displayName?.[0]?.toUpperCase()}</Text>
+                    </LinearGradient>
+                  )}
                   <Text style={styles.friendName}>{post.displayName}</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#555" />
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
                 </TouchableOpacity>
                 {SLOTS_META.map(({ key }) =>
-                  post.songs?.[key] ? (
-                    <SongCard key={key} song={post.songs[key]} slot={key} />
-                  ) : null
+                  post.songs?.[key] ? <SongCard key={key} song={post.songs[key]} slot={key} /> : null
                 )}
                 <Reactions postId={post.id} reactions={post.reactions ?? {}} />
               </View>
@@ -194,9 +196,10 @@ export default function HomeScreen() {
         )}
 
         {!loading && friendPosts.length === 0 && filled > 0 && (
-          <Text style={styles.footerHint}>
-            Agrega amigos para ver sus canciones del día
-          </Text>
+          <View style={styles.emptyFriends}>
+            <Text style={styles.emptyFriendsEmoji}>🌸</Text>
+            <Text style={styles.emptyFriendsText}>Agrega amigos para ver sus canciones del día</Text>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -204,28 +207,30 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#000000' },
+  safe: { flex: 1, backgroundColor: Colors.bg },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
   header: { paddingTop: Platform.OS === 'ios' ? 12 : 20, marginBottom: 20 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  logo: { fontSize: 28, fontWeight: '800', color: '#1DB954', letterSpacing: -1 },
-  addBtn: { backgroundColor: '#1DB954', borderRadius: 10, padding: 6 },
-  eyebrow: { fontSize: 13, fontWeight: '500', color: '#636366', letterSpacing: 0.2, marginBottom: 6 },
-  title: { fontSize: 34, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5 },
-  subtitle: { fontSize: 15, fontWeight: '400', color: '#8E8E93', marginTop: 2, marginBottom: 14 },
-  statusChip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#1C1C1E', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, gap: 6 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  eyebrow: { fontSize: 12, color: Colors.textMuted, fontWeight: '500', marginBottom: 2 },
+  logo: { fontSize: 32, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1.5 },
+  addBtn: { borderRadius: 14, padding: 10 },
+  dateTitle: { fontSize: 34, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -0.5 },
+  dateSub: { fontSize: 14, color: Colors.textSecondary, marginTop: 2, marginBottom: 16 },
+  statusChip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', borderRadius: Radius.pill, paddingHorizontal: 14, paddingVertical: 7, gap: 7, borderWidth: 1, borderColor: 'rgba(192,132,252,0.15)' },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 12, fontWeight: '500', color: '#8E8E93' },
-  separator: { height: StyleSheet.hairlineWidth, backgroundColor: '#38383A', marginBottom: 24 },
+  statusText: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginBottom: 24 },
   section: { marginBottom: 8 },
-  sectionHeader: { fontSize: 12, fontWeight: '600', color: '#636366', letterSpacing: 1, marginBottom: 12, paddingLeft: 4 },
-  blocksGroup: { gap: 0 },
-  inlineSeparator: { height: 10 },
-  friendPost: { marginBottom: 24 },
-  friendHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1DB954', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#000', fontWeight: '700', fontSize: 14 },
-  friendName: { flex: 1, color: '#fff', fontWeight: '600', fontSize: 15 },
-  footerHint: { fontSize: 12, color: '#3A3A3C', textAlign: 'center', marginTop: 32, letterSpacing: 0.2 },
+  sectionHeader: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, letterSpacing: 1.5, marginBottom: 14 },
+  blocksGroup: {},
+  friendPost: { marginBottom: 28 },
+  friendHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  avatarImg: { width: 36, height: 36, borderRadius: 18 },
+  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  friendName: { flex: 1, color: Colors.textPrimary, fontWeight: '600', fontSize: 15 },
+  emptyFriends: { alignItems: 'center', marginTop: 40, gap: 8 },
+  emptyFriendsEmoji: { fontSize: 36 },
+  emptyFriendsText: { color: Colors.textMuted, fontSize: 13, textAlign: 'center' },
 });

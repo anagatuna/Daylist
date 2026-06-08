@@ -1,18 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated,
 } from 'react-native';
 import { Link } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { Colors, Radius } from '@/constants/Theme';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 55, friction: 8, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   async function handleRegister() {
     if (!name || !email || !password) return Alert.alert('Completa todos los campos');
@@ -25,6 +37,7 @@ export default function RegisterScreen() {
         displayName: name.trim(),
         email: email.trim(),
         avatar: null,
+        bio: '',
         createdAt: serverTimestamp(),
         friends: [],
         friendRequests: [],
@@ -37,76 +50,87 @@ export default function RegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.inner}>
-        <Text style={styles.logo}>daylist</Text>
-        <Text style={styles.subtitle}>crea tu cuenta</Text>
+    <LinearGradient colors={['#160920', '#0D0A1A', '#1A0F2E']} style={styles.container}>
+      <View style={styles.orb1} />
+      <View style={styles.orb2} />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Nombre de usuario"
-          placeholderTextColor="#666"
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Correo electrónico"
-          placeholderTextColor="#666"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Contraseña"
-          placeholderTextColor="#666"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+      <KeyboardAvoidingView
+        style={styles.inner}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
-        <TouchableOpacity style={styles.btn} onPress={handleRegister} disabled={loading}>
-          {loading ? <ActivityIndicator color="#000" /> : <Text style={styles.btnText}>Crear cuenta</Text>}
-        </TouchableOpacity>
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Crea tu cuenta ✨</Text>
+            <Text style={styles.subtitle}>Únete y comparte tu soundtrack diario</Text>
+          </View>
 
-        <Link href="/(auth)/login" asChild>
-          <TouchableOpacity style={styles.linkBtn}>
-            <Text style={styles.linkText}>¿Ya tienes cuenta? <Text style={styles.linkAccent}>Inicia sesión</Text></Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
-    </KeyboardAvoidingView>
+          <View style={styles.form}>
+            {[
+              { label: 'Nombre de usuario', value: name, setter: setName, placeholder: 'Tu nombre', secure: false },
+              { label: 'Correo', value: email, setter: setEmail, placeholder: 'tu@correo.com', secure: false, keyboard: 'email-address' },
+              { label: 'Contraseña', value: password, setter: setPassword, placeholder: '••••••••', secure: true },
+            ].map(({ label, value, setter, placeholder, secure, keyboard }) => (
+              <View key={label} style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>{label}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={placeholder}
+                  placeholderTextColor={Colors.textMuted}
+                  autoCapitalize="none"
+                  keyboardType={keyboard ?? 'default'}
+                  secureTextEntry={secure}
+                  value={value}
+                  onChangeText={setter}
+                />
+              </View>
+            ))}
+
+            <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
+              <LinearGradient colors={['#C084FC', '#F472B6']} style={styles.btn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                {loading
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.btnText}>Crear cuenta</Text>}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <Link href="/(auth)/login" asChild>
+              <TouchableOpacity style={styles.linkBtn}>
+                <Text style={styles.linkText}>
+                  ¿Ya tienes cuenta?{'  '}
+                  <Text style={styles.linkAccent}>Inicia sesión</Text>
+                </Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  container: { flex: 1 },
+  orb1: { position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: '#F472B6', opacity: 0.07, top: -40, left: -60 },
+  orb2: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: '#C084FC', opacity: 0.07, bottom: 80, right: -40 },
   inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
-  logo: { fontSize: 48, fontWeight: '800', color: '#1DB954', textAlign: 'center', letterSpacing: -1 },
-  subtitle: { color: '#888', textAlign: 'center', marginBottom: 40, fontSize: 15 },
+  header: { marginBottom: 32 },
+  title: { fontSize: 32, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1 },
+  subtitle: { color: Colors.textSecondary, fontSize: 14, marginTop: 6 },
+  form: { gap: 16 },
+  inputWrapper: { gap: 6 },
+  inputLabel: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600', letterSpacing: 0.5 },
   input: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: Radius.md,
     padding: 16,
-    color: '#fff',
+    color: Colors.textPrimary,
     fontSize: 15,
-    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: 'rgba(192,132,252,0.2)',
   },
-  btn: {
-    backgroundColor: '#1DB954',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  btnText: { color: '#000', fontWeight: '700', fontSize: 16 },
-  linkBtn: { marginTop: 20, alignItems: 'center' },
-  linkText: { color: '#888', fontSize: 14 },
-  linkAccent: { color: '#1DB954', fontWeight: '600' },
+  btn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', marginTop: 8 },
+  btnText: { color: '#fff', fontWeight: '700', fontSize: 16, letterSpacing: 0.3 },
+  linkBtn: { alignItems: 'center', padding: 8 },
+  linkText: { color: Colors.textSecondary, fontSize: 14 },
+  linkAccent: { color: Colors.primary, fontWeight: '700' },
 });

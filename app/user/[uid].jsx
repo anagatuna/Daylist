@@ -5,8 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { LinearGradient } from 'expo-linear-gradient';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
+import { Colors, Radius } from '@/constants/Theme';
 
 const SLOTS = ['morning', 'afternoon', 'night'];
 
@@ -87,18 +89,19 @@ export default function UserProfileScreen() {
             <Text style={styles.postCount}>{posts.length} días publicados</Text>
 
             {uid !== me && (
-              <TouchableOpacity
-                style={[styles.friendBtn, isFriend && styles.friendBtnActive]}
-                onPress={toggleFriend}>
-                <Ionicons
-                  name={isFriend ? 'person-remove-outline' : 'person-add-outline'}
-                  size={16}
-                  color={isFriend ? '#555' : '#000'}
-                />
-                <Text style={[styles.friendBtnText, isFriend && styles.friendBtnTextActive]}>
-                  {isFriend ? 'Quitar amigo' : 'Agregar amigo'}
-                </Text>
-              </TouchableOpacity>
+              isFriend ? (
+                <TouchableOpacity style={styles.friendBtnActive} onPress={toggleFriend}>
+                  <Ionicons name="person-remove-outline" size={16} color={Colors.textMuted} />
+                  <Text style={styles.friendBtnTextActive}>Quitar amigo</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={toggleFriend} activeOpacity={0.85}>
+                  <LinearGradient colors={Colors.gradientPrimary} style={styles.friendBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    <Ionicons name="person-add-outline" size={16} color="#fff" />
+                    <Text style={styles.friendBtnText}>Agregar amigo</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )
             )}
           </View>
         }
@@ -118,20 +121,20 @@ export default function UserProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  header: { alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#1a1a1a', marginBottom: 8 },
-  avatarImg: { width: 80, height: 80, borderRadius: 40, marginBottom: 10 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#1DB954', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  avatarText: { color: '#000', fontWeight: '800', fontSize: 30 },
-  bio: { color: '#aaa', fontSize: 13, textAlign: 'center', marginTop: 6, paddingHorizontal: 20, lineHeight: 18 },
-  name: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  postCount: { color: '#555', fontSize: 13, marginTop: 4 },
-  friendBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#1DB954', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10, marginTop: 16 },
-  friendBtnActive: { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a' },
-  friendBtnText: { color: '#000', fontWeight: '600', fontSize: 14 },
-  friendBtnTextActive: { color: '#555' },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  header: { alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: Colors.border, marginBottom: 8 },
+  avatarImg: { width: 84, height: 84, borderRadius: 42, marginBottom: 12 },
+  avatar: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatarText: { color: '#fff', fontWeight: '800', fontSize: 32 },
+  bio: { color: Colors.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 8, paddingHorizontal: 20, lineHeight: 18 },
+  name: { color: Colors.textPrimary, fontSize: 21, fontWeight: '800' },
+  postCount: { color: Colors.textMuted, fontSize: 13, marginTop: 4 },
+  friendBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: Radius.pill, paddingHorizontal: 18, paddingVertical: 11, marginTop: 16 },
+  friendBtnActive: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.card, borderRadius: Radius.pill, paddingHorizontal: 18, paddingVertical: 11, marginTop: 16, borderWidth: 1, borderColor: Colors.border },
+  friendBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  friendBtnTextActive: { color: Colors.textMuted, fontWeight: '600', fontSize: 14 },
   list: { padding: 16 },
   postBlock: { marginBottom: 24 },
-  postDate: { color: '#888', fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  empty: { color: '#555', textAlign: 'center', marginTop: 40 },
+  postDate: { color: Colors.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 10 },
+  empty: { color: Colors.textMuted, textAlign: 'center', marginTop: 40 },
 });

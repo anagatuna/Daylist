@@ -4,6 +4,7 @@ import {
   TextInput, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   collection, getDocs, doc, getDoc,
   updateDoc, arrayUnion, arrayRemove,
@@ -12,6 +13,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { notifyFriendRequest } from '@/lib/notifications';
+import { Colors, Radius } from '@/constants/Theme';
 
 export default function FriendsScreen() {
   const { user } = useAuth();
@@ -33,12 +35,9 @@ export default function FriendsScreen() {
   async function loadFriends() {
     const userDoc = await getDoc(doc(db, 'users', uid));
     const data = userDoc.data() ?? {};
-    const friendIds = data.friends ?? [];
-    const requestIds = data.friendRequests ?? [];
-
     const [friendDocs, requestDocs] = await Promise.all([
-      fetchUsers(friendIds),
-      fetchUsers(requestIds),
+      fetchUsers(data.friends ?? []),
+      fetchUsers(data.friendRequests ?? []),
     ]);
     setFriends(friendDocs);
     setRequests(requestDocs);
@@ -72,11 +71,9 @@ export default function FriendsScreen() {
 
   async function sendRequest(targetUid) {
     try {
-      await updateDoc(doc(db, 'users', targetUid), {
-        friendRequests: arrayUnion(uid),
-      });
+      await updateDoc(doc(db, 'users', targetUid), { friendRequests: arrayUnion(uid) });
       notifyFriendRequest(targetUid, user.displayName).catch(() => {});
-      Alert.alert('Solicitud enviada');
+      Alert.alert('✨ Solicitud enviada');
     } catch {
       Alert.alert('Error enviando solicitud');
     }
@@ -85,24 +82,15 @@ export default function FriendsScreen() {
   async function acceptRequest(fromUid) {
     try {
       await Promise.all([
-        updateDoc(doc(db, 'users', uid), {
-          friends: arrayUnion(fromUid),
-          friendRequests: arrayRemove(fromUid),
-        }),
-        updateDoc(doc(db, 'users', fromUid), {
-          friends: arrayUnion(uid),
-        }),
+        updateDoc(doc(db, 'users', uid), { friends: arrayUnion(fromUid), friendRequests: arrayRemove(fromUid) }),
+        updateDoc(doc(db, 'users', fromUid), { friends: arrayUnion(uid) }),
       ]);
       await loadFriends();
-    } catch {
-      Alert.alert('Error aceptando solicitud');
-    }
+    } catch { Alert.alert('Error aceptando solicitud'); }
   }
 
   async function rejectRequest(fromUid) {
-    await updateDoc(doc(db, 'users', uid), {
-      friendRequests: arrayRemove(fromUid),
-    });
+    await updateDoc(doc(db, 'users', uid), { friendRequests: arrayRemove(fromUid) });
     await loadFriends();
   }
 
@@ -122,43 +110,55 @@ export default function FriendsScreen() {
     ]);
   }
 
+  function UserRow({ item, right }) {
+    return (
+      <TouchableOpacity style={styles.userRow} onPress={() => router.push(`/user/${item.id}`)} activeOpacity={0.7}>
+        <LinearGradient colors={Colors.gradientPrimary} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <Text style={styles.avatarText}>{item.displayName?.[0]?.toUpperCase()}</Text>
+        </LinearGradient>
+        <Text style={[styles.userName, { flex: 1 }]}>{item.displayName}</Text>
+        {right}
+      </TouchableOpacity>
+    );
+  }
+
+  const TABS = [
+    { key: 'friends', label: 'Amigos' },
+    { key: 'requests', label: `Solicitudes${requests.length ? ` (${requests.length})` : ''}` },
+    { key: 'search', label: 'Buscar' },
+  ];
+
   return (
     <View style={styles.container}>
-      <View style={styles.tabs}>
-        {[
-          { key: 'friends', label: 'Amigos' },
-          { key: 'requests', label: `Solicitudes${requests.length ? ` (${requests.length})` : ''}` },
-          { key: 'search', label: 'Buscar' },
-        ].map(t => (
+      {/* Tabs */}
+      <View style={styles.tabsRow}>
+        {TABS.map(t => (
           <TouchableOpacity
             key={t.key}
             style={[styles.tab, tab === t.key && styles.tabActive]}
             onPress={() => setTab(t.key)}>
             <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]}>{t.label}</Text>
+            {tab === t.key && (
+              <LinearGradient colors={Colors.gradientPrimary} style={styles.tabIndicator} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
+            )}
           </TouchableOpacity>
         ))}
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#1DB954" style={{ marginTop: 40 }} />
+        <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
       ) : tab === 'friends' ? (
         <FlatList
           data={friends}
           keyExtractor={u => u.id}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.empty}>Aún no tienes amigos. ¡Búscalos!</Text>}
+          ListEmptyComponent={<View style={styles.empty}><Text style={styles.emptyEmoji}>🌸</Text><Text style={styles.emptyText}>Aún no tienes amigos. ¡Búscalos!</Text></View>}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.userRow}
-              onPress={() => router.push(`/user/${item.id}`)}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{item.displayName?.[0]?.toUpperCase()}</Text>
-              </View>
-              <Text style={[styles.userName, { flex: 1 }]}>{item.displayName}</Text>
+            <UserRow item={item} right={
               <TouchableOpacity onPress={() => removeFriend(item.id)}>
-                <Ionicons name="person-remove-outline" size={20} color="#555" />
+                <Ionicons name="person-remove-outline" size={20} color={Colors.textMuted} />
               </TouchableOpacity>
-            </TouchableOpacity>
+            } />
           )}
         />
       ) : tab === 'requests' ? (
@@ -166,39 +166,39 @@ export default function FriendsScreen() {
           data={requests}
           keyExtractor={u => u.id}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.empty}>No hay solicitudes pendientes</Text>}
+          ListEmptyComponent={<View style={styles.empty}><Text style={styles.emptyEmoji}>💌</Text><Text style={styles.emptyText}>No hay solicitudes pendientes</Text></View>}
           renderItem={({ item }) => (
-            <View style={styles.userRow}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{item.displayName?.[0]?.toUpperCase()}</Text>
+            <UserRow item={item} right={
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity onPress={() => acceptRequest(item.id)}>
+                  <LinearGradient colors={Colors.gradientPrimary} style={styles.acceptBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    <Text style={styles.acceptBtnText}>Aceptar</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectRequest(item.id)}>
+                  <Ionicons name="close" size={18} color={Colors.textMuted} />
+                </TouchableOpacity>
               </View>
-              <Text style={[styles.userName, { flex: 1 }]}>{item.displayName}</Text>
-              <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptRequest(item.id)}>
-                <Text style={styles.acceptBtnText}>Aceptar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => rejectRequest(item.id)}>
-                <Ionicons name="close" size={20} color="#555" />
-              </TouchableOpacity>
-            </View>
+            } />
           )}
         />
       ) : (
-        <View style={styles.searchContainer}>
+        <View style={{ flex: 1 }}>
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar por nombre..."
-              placeholderTextColor="#555"
+              placeholderTextColor={Colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={searchUsers}
               returnKeyType="search"
               autoCapitalize="none"
             />
-            <TouchableOpacity style={styles.searchBtn} onPress={searchUsers}>
-              {searching
-                ? <ActivityIndicator color="#000" size="small" />
-                : <Ionicons name="search" size={20} color="#000" />}
+            <TouchableOpacity onPress={searchUsers} activeOpacity={0.85}>
+              <LinearGradient colors={Colors.gradientPrimary} style={styles.searchBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                {searching ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="search" size={18} color="#fff" />}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
@@ -206,30 +206,24 @@ export default function FriendsScreen() {
             data={searchResults}
             keyExtractor={u => u.id}
             contentContainerStyle={styles.list}
-            ListEmptyComponent={
-              searchResults.length === 0 && searchQuery.trim()
-                ? <Text style={styles.empty}>No se encontraron usuarios</Text>
-                : null
-            }
+            ListEmptyComponent={searchQuery.trim() ? <View style={styles.empty}><Text style={styles.emptyEmoji}>🔍</Text><Text style={styles.emptyText}>No se encontraron usuarios</Text></View> : null}
             renderItem={({ item }) => {
               const isFriend = friends.some(f => f.id === item.id);
               const requested = item.friendRequests?.includes(uid);
               return (
-                <View style={styles.userRow}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{item.displayName?.[0]?.toUpperCase()}</Text>
-                  </View>
-                  <Text style={[styles.userName, { flex: 1 }]}>{item.displayName}</Text>
-                  {isFriend ? (
+                <UserRow item={item} right={
+                  isFriend ? (
                     <Text style={styles.alreadyFriend}>✓ Amigo</Text>
                   ) : requested ? (
                     <Text style={styles.alreadyFriend}>Enviada</Text>
                   ) : (
                     <TouchableOpacity style={styles.addBtn} onPress={() => sendRequest(item.id)}>
-                      <Ionicons name="person-add-outline" size={18} color="#1DB954" />
+                      <LinearGradient colors={Colors.gradientPrimary} style={styles.addBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                        <Ionicons name="person-add-outline" size={16} color="#fff" />
+                      </LinearGradient>
                     </TouchableOpacity>
-                  )}
-                </View>
+                  )
+                } />
               );
             }}
           />
@@ -240,24 +234,28 @@ export default function FriendsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
-  tab: { flex: 1, paddingVertical: 14, alignItems: 'center' },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#1DB954' },
-  tabText: { color: '#555', fontSize: 13, fontWeight: '500' },
-  tabTextActive: { color: '#1DB954' },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  tabsRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: Colors.border },
+  tab: { flex: 1, paddingVertical: 14, alignItems: 'center', position: 'relative' },
+  tabActive: {},
+  tabText: { color: Colors.textMuted, fontSize: 13, fontWeight: '500' },
+  tabTextActive: { color: Colors.textPrimary, fontWeight: '600' },
+  tabIndicator: { position: 'absolute', bottom: 0, left: 16, right: 16, height: 2, borderRadius: 1 },
   list: { padding: 16, gap: 8 },
-  userRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#141414', borderRadius: 12, padding: 14 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1DB954', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#000', fontWeight: '700', fontSize: 16 },
-  userName: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  acceptBtn: { backgroundColor: '#1DB954', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  acceptBtnText: { color: '#000', fontWeight: '600', fontSize: 13 },
-  addBtn: { padding: 4 },
-  alreadyFriend: { color: '#555', fontSize: 13 },
-  empty: { color: '#555', textAlign: 'center', marginTop: 40, fontSize: 15 },
-  searchContainer: { flex: 1 },
+  userRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: Colors.border },
+  avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#fff', fontWeight: '700', fontSize: 17 },
+  userName: { color: Colors.textPrimary, fontSize: 15, fontWeight: '500' },
+  acceptBtn: { borderRadius: Radius.pill, paddingHorizontal: 14, paddingVertical: 7 },
+  acceptBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  rejectBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border },
+  addBtn: {},
+  addBtnGrad: { borderRadius: 18, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  alreadyFriend: { color: Colors.textMuted, fontSize: 13 },
+  empty: { alignItems: 'center', marginTop: 50, gap: 8 },
+  emptyEmoji: { fontSize: 36 },
+  emptyText: { color: Colors.textMuted, textAlign: 'center', fontSize: 14 },
   searchRow: { flexDirection: 'row', gap: 10, padding: 16 },
-  searchInput: { flex: 1, backgroundColor: '#1a1a1a', borderRadius: 10, padding: 12, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: '#2a2a2a' },
-  searchBtn: { backgroundColor: '#1DB954', borderRadius: 10, padding: 12, justifyContent: 'center', alignItems: 'center' },
+  searchInput: { flex: 1, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 13, color: Colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: Colors.border },
+  searchBtn: { borderRadius: Radius.md, padding: 13, justifyContent: 'center', alignItems: 'center', width: 48 },
 });

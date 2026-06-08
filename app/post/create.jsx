@@ -5,11 +5,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { searchTracks, serializeTrack } from '@/lib/itunes';
 import { notifyFriends } from '@/lib/notifications';
 import AudioPlayer from '@/components/AudioPlayer';
+import { Colors, Radius } from '@/constants/Theme';
 
 const SLOTS = [
   { key: 'morning', label: '🌅 Mañana' },
@@ -176,14 +178,16 @@ export default function CreatePostScreen() {
           <TextInput
             style={styles.searchInput}
             placeholder="Artista, canción..."
-            placeholderTextColor="#555"
+            placeholderTextColor={Colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={search}
             returnKeyType="search"
           />
-          <TouchableOpacity style={styles.searchBtn} onPress={search}>
-            {searching ? <ActivityIndicator color="#000" /> : <Ionicons name="search" size={20} color="#000" />}
+          <TouchableOpacity onPress={search} activeOpacity={0.85}>
+            <LinearGradient colors={Colors.gradientPrimary} style={styles.searchBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              {searching ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="search" size={18} color="#fff" />}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -271,8 +275,10 @@ export default function CreatePostScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.publishBtn} onPress={publish} disabled={saving}>
-          {saving ? <ActivityIndicator color="#000" /> : <Text style={styles.publishBtnText}>Publicar</Text>}
+        <TouchableOpacity onPress={publish} disabled={saving} activeOpacity={0.85}>
+          <LinearGradient colors={Colors.gradientPrimary} style={styles.publishBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishBtnText}>Publicar ✨</Text>}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -288,15 +294,17 @@ export default function CreatePostScreen() {
           <TextInput
             style={styles.phraseInput}
             placeholder="¿Qué te transmite esta canción?"
-            placeholderTextColor="#555"
+            placeholderTextColor={Colors.textMuted}
             value={phrase}
             onChangeText={setPhrase}
             multiline
             maxLength={200}
           />
           <Text style={styles.charCount}>{phrase.length}/200</Text>
-          <TouchableOpacity style={styles.saveBtn} onPress={savePhrase}>
-            <Text style={styles.saveBtnText}>Guardar</Text>
+          <TouchableOpacity onPress={savePhrase} activeOpacity={0.85}>
+            <LinearGradient colors={Colors.gradientPrimary} style={styles.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <Text style={styles.saveBtnText}>Guardar</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -340,13 +348,15 @@ export default function CreatePostScreen() {
                 onChangeText={setEndSec}
                 keyboardType="numeric"
                 placeholder="30"
-                placeholderTextColor="#555"
+                placeholderTextColor={Colors.textMuted}
               />
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveBtn} onPress={saveFragment}>
-            <Text style={styles.saveBtnText}>Guardar fragmento</Text>
+          <TouchableOpacity onPress={saveFragment} activeOpacity={0.85}>
+            <LinearGradient colors={Colors.gradientPrimary} style={styles.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <Text style={styles.saveBtnText}>Guardar fragmento</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -355,51 +365,47 @@ export default function CreatePostScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  container: { flex: 1, backgroundColor: Colors.bg },
   scroll: { padding: 20, paddingBottom: 100 },
-  title: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 24 },
+  title: { color: Colors.textPrimary, fontSize: 22, fontWeight: '800', marginBottom: 24 },
   slotSection: { marginBottom: 20 },
-  slotLabel: { color: '#888', fontSize: 13, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  addBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#141414', borderRadius: 12, padding: 16,
-    borderWidth: 1, borderColor: '#222', borderStyle: 'dashed',
-  },
-  addBtnText: { color: '#1DB954', fontSize: 15 },
-  selectedCard: { backgroundColor: '#141414', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#222' },
+  slotLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 16, borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)', borderStyle: 'dashed' },
+  addBtnText: { color: Colors.primary, fontSize: 15 },
+  selectedCard: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: Colors.border },
   selectedRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  selectedCover: { width: 60, height: 60, borderRadius: 8 },
-  selectedName: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  selectedArtist: { color: '#1DB954', fontSize: 12, marginTop: 2 },
+  selectedCover: { width: 60, height: 60, borderRadius: Radius.sm },
+  selectedName: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
+  selectedArtist: { color: Colors.primary, fontSize: 12, marginTop: 2 },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  actionBtnText: { color: '#888', fontSize: 12 },
-  phrasePreview: { color: '#aaa', fontStyle: 'italic', fontSize: 13, marginTop: 8 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: '#0a0a0a', borderTopWidth: 1, borderTopColor: '#1a1a1a' },
-  publishBtn: { backgroundColor: '#1DB954', borderRadius: 12, padding: 16, alignItems: 'center' },
-  publishBtnText: { color: '#000', fontWeight: '700', fontSize: 16 },
+  actionBtnText: { color: Colors.textSecondary, fontSize: 12 },
+  phrasePreview: { color: Colors.textSecondary, fontStyle: 'italic', fontSize: 13, marginTop: 8 },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: Colors.bg, borderTopWidth: 1, borderTopColor: Colors.border },
+  publishBtn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', overflow: 'hidden' },
+  publishBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingTop: 20 },
-  searchTitle: { color: '#fff', fontSize: 16, fontWeight: '600', flex: 1 },
+  searchTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '600', flex: 1 },
   searchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 8 },
-  searchInput: { flex: 1, backgroundColor: '#1a1a1a', borderRadius: 10, padding: 12, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: '#2a2a2a' },
-  searchBtn: { backgroundColor: '#1DB954', borderRadius: 10, padding: 12, justifyContent: 'center', alignItems: 'center' },
-  resultItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#141414', borderRadius: 10, padding: 10 },
-  resultCover: { width: 50, height: 50, borderRadius: 6 },
-  resultName: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  resultArtist: { color: '#1DB954', fontSize: 12 },
-  resultAlbum: { color: '#555', fontSize: 11 },
-  modal: { flex: 1, backgroundColor: '#0a0a0a', padding: 20, paddingTop: 50 },
+  searchInput: { flex: 1, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 13, color: Colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: Colors.border },
+  searchBtn: { borderRadius: Radius.md, padding: 13, justifyContent: 'center', alignItems: 'center', width: 48 },
+  resultItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 12, borderWidth: 1, borderColor: Colors.border },
+  resultCover: { width: 50, height: 50, borderRadius: Radius.sm },
+  resultName: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
+  resultArtist: { color: Colors.primary, fontSize: 12 },
+  resultAlbum: { color: Colors.textMuted, fontSize: 11 },
+  modal: { flex: 1, backgroundColor: Colors.bg, padding: 20, paddingTop: 50 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  modalSub: { color: '#888', fontSize: 14, marginBottom: 20 },
-  phraseInput: { backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16, color: '#fff', fontSize: 15, minHeight: 120, textAlignVertical: 'top', borderWidth: 1, borderColor: '#2a2a2a' },
-  charCount: { color: '#555', fontSize: 12, textAlign: 'right', marginTop: 4 },
-  saveBtn: { backgroundColor: '#1DB954', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 24 },
-  saveBtnText: { color: '#000', fontWeight: '700', fontSize: 16 },
+  modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
+  modalSub: { color: Colors.textSecondary, fontSize: 14, marginBottom: 20 },
+  phraseInput: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: 16, color: Colors.textPrimary, fontSize: 15, minHeight: 120, textAlignVertical: 'top', borderWidth: 1, borderColor: Colors.border },
+  charCount: { color: Colors.textMuted, fontSize: 12, textAlign: 'right', marginTop: 4 },
+  saveBtn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', marginTop: 24 },
+  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   fragmentRow: { flexDirection: 'row', gap: 16, marginBottom: 8 },
   fragmentField: { flex: 1 },
-  fragmentLabel: { color: '#888', fontSize: 13, marginBottom: 6 },
-  fragmentInput: { backgroundColor: '#1a1a1a', borderRadius: 10, padding: 14, color: '#fff', fontSize: 16, borderWidth: 1, borderColor: '#2a2a2a' },
-  previewBadge: { color: '#1DB954', fontSize: 11, marginTop: 3, fontWeight: '600' },
-  noPreviewBadge: { color: '#444', fontSize: 11, marginTop: 3 },
+  fragmentLabel: { color: Colors.textSecondary, fontSize: 13, marginBottom: 6 },
+  fragmentInput: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, color: Colors.textPrimary, fontSize: 16, borderWidth: 1, borderColor: Colors.border },
+  previewBadge: { color: Colors.primary, fontSize: 11, marginTop: 3, fontWeight: '600' },
+  noPreviewBadge: { color: Colors.textMuted, fontSize: 11, marginTop: 3 },
 });
