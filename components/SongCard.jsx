@@ -106,7 +106,10 @@ export default function SongCard({ song, slot }) {
         <View style={styles.actions}>
           <TouchableOpacity style={styles.actionBtn} onPress={openLyrics}>
             <Ionicons name="document-text-outline" size={14} color={Colors.textSecondary} />
-            <Text style={styles.actionText}>Ver letra</Text>
+            <Text style={styles.actionText}>
+              {song.lyricSnippet && (Array.isArray(song.lyricSnippet) ? song.lyricSnippet.length > 0 : true)
+                ? 'Ver letra destacada' : 'Ver letra'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.spotifyBtn} onPress={openSpotify}>
             <Ionicons name="musical-notes" size={13} color="#1DB954" />
@@ -142,9 +145,15 @@ export default function SongCard({ song, slot }) {
             ) : stanzas.length > 0 ? (
               stanzas.map((stanza, i) => (
                 <View key={i} style={styles.stanza}>
-                  {stanza.split('\n').map((line, j) => (
-                    <Text key={j} style={styles.lyricsLine}>{line}</Text>
-                  ))}
+                  {stanza.split('\n').map((line, j) => {
+                    const snippetArr = Array.isArray(song.lyricSnippet) ? song.lyricSnippet : song.lyricSnippet ? [song.lyricSnippet] : [];
+                    const isHighlighted = snippetArr.some(s => s.trim() === line.trim());
+                    return (
+                      <Text key={j} style={[styles.lyricsLine, isHighlighted && styles.lyricsLineHighlighted]}>
+                        {line}
+                      </Text>
+                    );
+                  })}
                 </View>
               ))
             ) : (
@@ -188,6 +197,8 @@ const styles = StyleSheet.create({
   artist: { color: Colors.primary, fontSize: 13, marginTop: 3, fontWeight: '500' },
   album: { color: Colors.textMuted, fontSize: 11, marginTop: 2 },
   phraseContainer: { flexDirection: 'row', marginTop: 8, gap: 2 },
+  lyricSnippet: { flexDirection: 'row', alignItems: 'flex-start', gap: 5, marginTop: 7, backgroundColor: 'rgba(192,132,252,0.08)', borderRadius: 8, padding: 7, borderLeftWidth: 2, borderLeftColor: Colors.primary },
+  lyricSnippetText: { color: Colors.textSecondary, fontSize: 11, fontStyle: 'italic', flex: 1, lineHeight: 17 },
   phraseQuote: { color: Colors.secondary, fontSize: 14, fontWeight: '800', lineHeight: 18 },
   phrase: { color: Colors.textSecondary, fontSize: 12, fontStyle: 'italic', flex: 1, lineHeight: 18 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.border },
@@ -209,6 +220,7 @@ const styles = StyleSheet.create({
   lyricsBody: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 60 },
   stanza: { marginBottom: 28 },
   lyricsLine: { color: Colors.textPrimary, fontSize: 17, lineHeight: 30, fontWeight: '400' },
+  lyricsLineHighlighted: { color: Colors.primary, fontWeight: '700', backgroundColor: 'rgba(192,132,252,0.1)', borderRadius: 6, paddingHorizontal: 4 },
   noLyricsContainer: { alignItems: 'center', marginTop: 60, gap: 8 },
   noLyricsEmoji: { fontSize: 48 },
   noLyrics: { color: Colors.textSecondary, fontSize: 17, fontWeight: '600' },

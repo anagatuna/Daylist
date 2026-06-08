@@ -10,6 +10,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, update
 import { auth, db } from '@/lib/firebase';
 import { searchTracks, serializeTrack } from '@/lib/itunes';
 import { notifyFriends } from '@/lib/notifications';
+import { getLyrics } from '@/lib/musixmatch';
 import AudioPlayer from '@/components/AudioPlayer';
 import { Colors, Radius } from '@/constants/Theme';
 
@@ -26,11 +27,11 @@ export default function CreatePostScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [phraseModal, setPhraseModal] = useState(null); // slot key
+  const [phraseModal, setPhraseModal] = useState(null);
   const [phrase, setPhrase] = useState('');
-  const [fragmentModal, setFragmentModal] = useState(null); // slot key
-  const [startSec, setStartSec] = useState('0');
-  const [endSec, setEndSec] = useState('30');
+  const [lyricModal, setLyricModal] = useState(null); // slot key
+  const [lyricLines, setLyricLines] = useState([]);
+  const [loadingLyrics, setLoadingLyrics] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Cargar post de hoy si ya existe
@@ -74,7 +75,7 @@ export default function CreatePostScreen() {
     const serialized = serializeTrack(track);
     setSongs((prev) => ({
       ...prev,
-      [activeSlot]: { ...serialized, phrase: '', startSec: 0, endSec: null },
+      [activeSlot]: { ...serialized, phrase: '', lyricSnippet: null },
     }));
     setActiveSlot(null);
     setResults([]);
@@ -94,21 +95,39 @@ export default function CreatePostScreen() {
     setPhraseModal(null);
   }
 
-  function openFragmentModal(slot) {
-    const s = songs[slot];
-    setStartSec(String(s?.startSec ?? 0));
-    setEndSec(s?.endSec != null ? String(s.endSec) : '30');
-    setFragmentModal(slot);
+  async function openLyricModal(slot) {
+    setLyricModal(slot);
+    setLyricLines([]);
+    setLoadingLyrics(true);
+    const song = songs[slot];
+    const text = await getLyrics(song.name, song.artist);
+    if (text) {
+      const lines = text
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l && !l.startsWith('*') && !l.startsWith('('));
+      setLyricLines(lines);
+    }
+    setLoadingLyrics(false);
   }
 
-  function saveFragment() {
-    const s = parseFloat(startSec) || 0;
-    const e = parseFloat(endSec) || null;
-    setSongs((prev) => ({
-      ...prev,
-      [fragmentModal]: { ...prev[fragmentModal], startSec: s, endSec: e },
+  function toggleLyricLine(line) {
+    const current = songs[lyricModal]?.lyricSnippet ?? [];
+    const arr = Array.isArray(current) ? current : current ? [current] : [];
+    const exists = arr.includes(line);
+    setSongs(p => ({
+      ...p,
+      [lyricModal]: {
+        ...p[lyricModal],
+        lyricSnippet: exists ? arr.filter(l => l !== line) : [...arr, line],
+      },
     }));
-    setFragmentModal(null);
+  }
+
+  function getSelectedLines(slot) {
+    const s = songs[slot]?.lyricSnippet;
+    if (!s) return [];
+    return Array.isArray(s) ? s : [s];
   }
 
   async function publish() {
@@ -254,14 +273,23 @@ export default function CreatePostScreen() {
                       {songs[key].phrase ? 'Editar frase' : 'Agregar frase'}
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionBtn} onPress={() => openFragmentModal(key)}>
-                    <Ionicons name="cut-outline" size={14} color="#888" />
-                    <Text style={styles.actionBtnText}>Fragmento</Text>
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => openLyricModal(key)}>
+                    <Ionicons name="text-outline" size={14} color={Colors.textSecondary} />
+                    <Text style={styles.actionBtnText}>
+                      {getSelectedLines(key).length > 0 ? 'Editar destacado' : 'Destacar letra'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 {songs[key].phrase ? (
                   <Text style={styles.phrasePreview}>"{songs[key].phrase}"</Text>
+                ) : null}
+
+                {getSelectedLines(key).length > 0 ? (
+                  <View style={styles.lyricSnippetPreview}>
+                    <Ionicons name="musical-note" size={12} color={Colors.primary} />
+                    <Text style={styles.lyricSnippetText}>{getSelectedLines(key).length} líneas destacadas en la letra</Text>
+                  </View>
                 ) : null}
               </View>
             ) : (
@@ -309,55 +337,60 @@ export default function CreatePostScreen() {
         </View>
       </Modal>
 
-      {/* Fragment modal */}
-      <Modal visible={!!fragmentModal} animationType="slide" presentationStyle="pageSheet">
+      {/* Lyric picker modal */}
+      <Modal visible={!!lyricModal} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Elegir fragmento</Text>
-            <TouchableOpacity onPress={() => setFragmentModal(null)}>
-              <Ionicons name="close" size={24} color="#fff" />
+            <View>
+              <Text style={styles.modalTitle}>Elige una línea ✨</Text>
+              <Text style={styles.modalSub}>Toca la letra que quieres mostrar en tu post</Text>
+            </View>
+            <TouchableOpacity onPress={() => setLyricModal(null)}>
+              <Ionicons name="close" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.modalSub}>Define el inicio y fin del fragmento (en segundos)</Text>
 
-          {fragmentModal && songs[fragmentModal]?.previewUrl && (
-            <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-              <AudioPlayer
-                previewUrl={songs[fragmentModal].previewUrl}
-                startSec={parseFloat(startSec) || 0}
-                endSec={parseFloat(endSec) || null}
-              />
+          {lyricModal && getSelectedLines(lyricModal).length > 0 ? (
+            <View style={styles.currentSnippet}>
+              <View style={styles.currentSnippetHeader}>
+                <Text style={styles.currentSnippetLabel}>{getSelectedLines(lyricModal).length} líneas seleccionadas</Text>
+                <TouchableOpacity onPress={() => setSongs(p => ({ ...p, [lyricModal]: { ...p[lyricModal], lyricSnippet: [] } }))}>
+                  <Text style={styles.clearSnippet}>Limpiar todo</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+          ) : null}
+
+          {!loadingLyrics && lyricLines.length > 0 && (
+            <TouchableOpacity onPress={() => setLyricModal(null)} activeOpacity={0.85} style={{ paddingHorizontal: 20, marginBottom: 8 }}>
+              <LinearGradient colors={Colors.gradientPrimary} style={[styles.saveBtn, { marginTop: 0 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <Text style={styles.saveBtnText}>Listo ✨</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           )}
 
-          <View style={styles.fragmentRow}>
-            <View style={styles.fragmentField}>
-              <Text style={styles.fragmentLabel}>Inicio (seg)</Text>
-              <TextInput
-                style={styles.fragmentInput}
-                value={startSec}
-                onChangeText={setStartSec}
-                keyboardType="numeric"
-              />
+          {loadingLyrics ? (
+            <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+          ) : lyricLines.length > 0 ? (
+            <FlatList
+              data={lyricLines}
+              keyExtractor={(_, i) => String(i)}
+              contentContainerStyle={styles.lyricsList}
+              renderItem={({ item }) => (
+                <LyricLineItem
+                  item={item}
+                  selected={lyricModal ? getSelectedLines(lyricModal) : []}
+                  maxReached={false}
+                  onToggle={toggleLyricLine}
+                />
+              )}
+            />
+          ) : (
+            <View style={styles.noLyricsEmpty}>
+              <Text style={{ fontSize: 36 }}>🎵</Text>
+              <Text style={styles.noLyricsText}>Letra no disponible para esta canción</Text>
             </View>
-            <View style={styles.fragmentField}>
-              <Text style={styles.fragmentLabel}>Fin (seg)</Text>
-              <TextInput
-                style={styles.fragmentInput}
-                value={endSec}
-                onChangeText={setEndSec}
-                keyboardType="numeric"
-                placeholder="30"
-                placeholderTextColor={Colors.textMuted}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity onPress={saveFragment} activeOpacity={0.85}>
-            <LinearGradient colors={Colors.gradientPrimary} style={styles.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={styles.saveBtnText}>Guardar fragmento</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          )}
         </View>
       </Modal>
     </View>
@@ -402,10 +435,38 @@ const styles = StyleSheet.create({
   charCount: { color: Colors.textMuted, fontSize: 12, textAlign: 'right', marginTop: 4 },
   saveBtn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', marginTop: 24 },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  fragmentRow: { flexDirection: 'row', gap: 16, marginBottom: 8 },
-  fragmentField: { flex: 1 },
-  fragmentLabel: { color: Colors.textSecondary, fontSize: 13, marginBottom: 6 },
-  fragmentInput: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, color: Colors.textPrimary, fontSize: 16, borderWidth: 1, borderColor: Colors.border },
   previewBadge: { color: Colors.primary, fontSize: 11, marginTop: 3, fontWeight: '600' },
   noPreviewBadge: { color: Colors.textMuted, fontSize: 11, marginTop: 3 },
+  lyricSnippetPreview: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 8, backgroundColor: 'rgba(192,132,252,0.08)', borderRadius: Radius.sm, padding: 8, borderLeftWidth: 2, borderLeftColor: Colors.primary },
+  lyricSnippetText: { color: Colors.textSecondary, fontSize: 12, fontStyle: 'italic', flex: 1, lineHeight: 18 },
+  currentSnippet: { marginHorizontal: 20, marginBottom: 16, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)' },
+  currentSnippetLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  currentSnippetText: { color: Colors.primary, fontSize: 14, fontStyle: 'italic', lineHeight: 20 },
+  clearSnippet: { color: Colors.secondary, fontSize: 12, marginTop: 8, fontWeight: '600' },
+  lyricsList: { paddingHorizontal: 20, paddingBottom: 40, gap: 4 },
+  lyricLine: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: Radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  lyricLineSelected: { backgroundColor: 'rgba(192,132,252,0.12)', borderWidth: 1, borderColor: 'rgba(192,132,252,0.4)' },
+  lyricLineText: { color: Colors.textSecondary, fontSize: 15, lineHeight: 22, flex: 1 },
+  lyricLineTextSelected: { color: Colors.textPrimary, fontWeight: '600' },
+  lyricLineDisabled: { opacity: 0.3 },
+  lyricLineTextDisabled: { color: Colors.textMuted },
+  currentSnippetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  noLyricsEmpty: { alignItems: 'center', marginTop: 50, gap: 10 },
+  noLyricsText: { color: Colors.textMuted, fontSize: 14, textAlign: 'center' },
 });
+
+function LyricLineItem({ item, selected, maxReached, onToggle }) {
+  const isSelected = selected.includes(item);
+  const disabled = maxReached && !isSelected;
+  return (
+    <TouchableOpacity
+      style={[styles.lyricLine, isSelected && styles.lyricLineSelected, disabled && styles.lyricLineDisabled]}
+      onPress={() => !disabled && onToggle(item)}
+      activeOpacity={disabled ? 1 : 0.7}>
+      <Text style={[styles.lyricLineText, isSelected && styles.lyricLineTextSelected, disabled && styles.lyricLineTextDisabled]}>
+        {item}
+      </Text>
+      {isSelected && <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />}
+    </TouchableOpacity>
+  );
+}
