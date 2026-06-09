@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   Image, StyleSheet, ActivityIndicator, Alert, ScrollView, Modal,
@@ -35,7 +36,6 @@ export default function CreatePostScreen() {
   const [lyricLines, setLyricLines] = useState([]);
   const [loadingLyrics, setLoadingLyrics] = useState(false);
   const [saving, setSaving] = useState(false);
-
   // Cargar post de hoy si ya existe
   useEffect(() => {
     async function loadToday() {
@@ -60,17 +60,21 @@ export default function CreatePostScreen() {
     loadToday();
   }, []);
 
-  const search = useCallback(async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
-    try {
-      const tracks = await searchTracks(searchQuery);
-      setResults(tracks);
-    } catch {
-      Alert.alert('Error buscando canciones');
-    } finally {
-      setSearching(false);
-    }
+  // Búsqueda automática con debounce al escribir
+  useEffect(() => {
+    if (!searchQuery.trim()) { setResults([]); return; }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const tracks = await searchTracks(searchQuery);
+        setResults(tracks);
+      } catch {
+        // silencioso
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
   function selectTrack(track) {
@@ -157,6 +161,13 @@ export default function CreatePostScreen() {
 
       const userDoc2 = await getDoc(doc(db, 'users', user.uid));
       const avatar = userDoc2.data()?.avatar ?? null;
+      const friends = userDoc2.data()?.friends ?? [];
+
+      // Slots que ya fueron notificados hoy (persiste en AsyncStorage)
+      const notifKey = `notified_${user.uid}_${today}`;
+      const alreadyNotified = new Set(JSON.parse(await AsyncStorage.getItem(notifKey) ?? '[]'));
+      const filledSlots = Object.keys(songData).filter(k => songData[k]);
+      const newSlots = filledSlots.filter(k => !alreadyNotified.has(k));
 
       if (existingDoc) {
         await updateDoc(doc(db, 'posts', existingDoc.id), {
@@ -172,15 +183,15 @@ export default function CreatePostScreen() {
           date: today,
           songs: songData,
           createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
         });
+      }
 
-        // Notificar a los amigos solo en publicaciones nuevas
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const friends = userDoc.data()?.friends ?? [];
-        if (friends.length > 0) {
-          const filledSlots = Object.keys(songData).filter(k => songData[k]);
-          notifyFriends(user.uid, user.displayName, friends, filledSlots).catch(() => {});
-        }
+      // Notificar solo los slots nuevos y marcarlos como notificados
+      if (friends.length > 0 && newSlots.length > 0) {
+        await notifyFriends(user.uid, user.displayName, friends, newSlots);
+        const updated = [...alreadyNotified, ...newSlots];
+        await AsyncStorage.setItem(notifKey, JSON.stringify(updated));
       }
 
       router.replace('/(tabs)');
@@ -202,26 +213,33 @@ export default function CreatePostScreen() {
         </View>
 
         <View style={styles.searchRow}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Artista, canción..."
-            placeholderTextColor={Colors.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={search}
-            returnKeyType="search"
-          />
-          <TouchableOpacity onPress={search} activeOpacity={0.85}>
-            <LinearGradient colors={Colors.gradientPrimary} style={styles.searchBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              {searching ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="search" size={18} color="#fff" />}
-            </LinearGradient>
-          </TouchableOpacity>
+          <View style={styles.searchInputWrapper}>
+            <Ionicons name="search" size={16} color={Colors.textMuted} style={{ marginLeft: 12 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Artista o canción..."
+              placeholderTextColor={Colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              autoFocus
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+            {searching && <ActivityIndicator color={Colors.primary} size="small" style={{ marginRight: 12 }} />}
+            {!searching && searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={{ marginRight: 12 }}>
+                <Ionicons name="close-circle" size={17} color={Colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <FlatList
           data={results}
           keyExtractor={(t) => String(t.trackId)}
           contentContainerStyle={{ padding: 16, gap: 10 }}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.resultItem} onPress={() => selectTrack(item)}>
               {item.artworkUrl100 ? (
@@ -427,9 +445,9 @@ const styles = StyleSheet.create({
   publishBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingTop: 20 },
   searchTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '600', flex: 1 },
-  searchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 8 },
-  searchInput: { flex: 1, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 13, color: Colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: Colors.border },
-  searchBtn: { borderRadius: Radius.md, padding: 13, justifyContent: 'center', alignItems: 'center', width: 48 },
+  searchRow: { paddingHorizontal: 16, marginBottom: 8 },
+  searchInputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card, borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, gap: 8 },
+  searchInput: { flex: 1, paddingVertical: 13, paddingHorizontal: 8, color: Colors.textPrimary, fontSize: 15 },
   resultItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 12, borderWidth: 1, borderColor: Colors.border },
   resultCover: { width: 50, height: 50, borderRadius: Radius.sm },
   resultName: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },

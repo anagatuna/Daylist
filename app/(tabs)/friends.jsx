@@ -40,7 +40,7 @@ export default function FriendsScreen() {
   const [removingFriend, setRemovingFriend] = useState(null);
 
   useEffect(() => {
-    if (uid) loadFriends().then(() => loadActivity());
+    if (uid) loadFriends().then(({ friendDocs }) => loadActivity(friendDocs));
   }, [uid]);
 
   useFocusEffect(useCallback(() => {
@@ -61,6 +61,8 @@ export default function FriendsScreen() {
     // Punto de solicitudes no vistas
     const seenCount = parseInt(await AsyncStorage.getItem(`requests_seen_${uid}`) ?? '0', 10);
     setHasUnreadRequests(requestDocs.length > seenCount);
+
+    return { friendDocs };
   }
 
   async function fetchUsers(ids) {
@@ -71,8 +73,10 @@ export default function FriendsScreen() {
     return results.filter(Boolean);
   }
 
-  async function loadActivity() {
+  async function loadActivity(friendDocs) {
     if (!uid) return;
+    // Usar friendDocs pasado directamente o caer al estado (si se llama desde la tab)
+    const activeFriends = friendDocs ?? friends;
     setLoadingActivity(true);
     try {
       const lastSeen = parseInt(await AsyncStorage.getItem(`activity_seen_${uid}`) ?? '0', 10);
@@ -118,7 +122,7 @@ export default function FriendsScreen() {
       });
 
       // Posts recientes de amigos (últimos 7 días)
-      const friendIds = friends.map(f => f.id);
+      const friendIds = activeFriends.map(f => f.id);
       if (friendIds.length > 0) {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -139,7 +143,8 @@ export default function FriendsScreen() {
             postId: p.id,
             postDate: p.date,
             slots,
-            sortKey: p.createdAt?.seconds ?? 0,
+            // updatedAt cambia cuando agregan tarde/noche, createdAt solo es la primera vez
+            sortKey: p.updatedAt?.seconds ?? p.createdAt?.seconds ?? 0,
           });
         });
       }
