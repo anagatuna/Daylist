@@ -1,18 +1,19 @@
-// components/TrackBlock.jsx
-
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
+import { Colors, Radius, Shadow } from '@/constants/Theme';
 
-const ACCENT_COLORS = {
-  morning:   ['#BF8B3E', '#7A5520'],
-  afternoon: ['#B84888', '#732050'],
-  night:     ['#4A6AA3', '#263D6B'],
+const ACCENT = {
+  morning:   { bar: ['#E8B86D', '#D4956A'], dot: '#E8B86D' },
+  afternoon: { bar: ['#C97BAB', '#B5607A'], dot: '#C97BAB' },
+  night:     { bar: ['#7B98CC', '#5B76AA'], dot: '#7B98CC' },
+};
+
+const SLOT_LABEL = {
+  morning:   'Mañana',
+  afternoon: 'Tarde',
+  night:     'Noche',
 };
 
 function formatMs(ms) {
@@ -22,46 +23,33 @@ function formatMs(ms) {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-// --- Bloque con canción ---
-
 function FilledBlock({ slot, onPlay }) {
   const { track } = slot;
-  const accent = ACCENT_COLORS[slot.timeOfDay];
+  const accent = ACCENT[slot.timeOfDay] ?? ACCENT.morning;
 
   return (
     <View style={styles.filledContainer}>
       <LinearGradient
-        colors={accent}
+        colors={accent.bar}
         style={styles.accentBar}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
       />
 
-      <Image
-        source={{ uri: track.coverUrl }}
-        style={styles.coverImage}
-      />
+      <Image source={{ uri: track.coverUrl }} style={styles.coverImage} />
 
       <View style={styles.trackInfo}>
-        <Text style={styles.timeLabel}>
-          {slot.emoji}  {slot.label.toUpperCase()}
-        </Text>
-        <Text style={styles.trackTitle} numberOfLines={1}>
-          {track.title}
-        </Text>
-        <Text style={styles.trackArtist} numberOfLines={1}>
-          {track.artist}
-        </Text>
+        <Text style={styles.timeLabel}>{SLOT_LABEL[slot.timeOfDay]?.toUpperCase()}</Text>
+        <Text style={styles.trackTitle} numberOfLines={1}>{track.title}</Text>
+        <Text style={styles.trackArtist} numberOfLines={1}>{track.artist}</Text>
 
         {track.note ? (
-          <Text style={styles.trackNote} numberOfLines={2}>
-            {track.note}
-          </Text>
+          <Text style={styles.trackNote} numberOfLines={2}>{track.note}</Text>
         ) : null}
 
         {track.segment ? (
           <View style={styles.segmentRow}>
-            <View style={styles.segmentDot} />
+            <View style={[styles.segmentDot, { backgroundColor: accent.dot }]} />
             <Text style={styles.segmentText}>
               {formatMs(track.segment.startMs)} – {formatMs(track.segment.endMs)}
             </Text>
@@ -69,42 +57,32 @@ function FilledBlock({ slot, onPlay }) {
         ) : null}
       </View>
 
-      <TouchableOpacity
-        style={styles.playButton}
-        onPress={() => onPlay(slot)}
-        activeOpacity={0.65}
-      >
+      <TouchableOpacity style={styles.playButton} onPress={() => onPlay(slot)} activeOpacity={0.65}>
         <View style={styles.playTriangle} />
       </TouchableOpacity>
     </View>
   );
 }
 
-// --- Bloque vacío ---
-
 function EmptyBlock({ slot, onAdd }) {
-  const accent = ACCENT_COLORS[slot.timeOfDay];
+  const accent = ACCENT[slot.timeOfDay] ?? ACCENT.morning;
 
   return (
     <TouchableOpacity
       style={styles.emptyContainer}
       onPress={() => onAdd(slot.timeOfDay)}
-      activeOpacity={0.5}
+      activeOpacity={0.6}
     >
       <LinearGradient
-        colors={[accent[0] + '40', accent[1] + '10']}
+        colors={[accent.bar[0] + '30', accent.bar[1] + '08']}
         style={styles.accentBar}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
       />
 
       <View style={styles.emptyLeft}>
-        <Text style={styles.emptyLabel}>
-          {slot.emoji}  {slot.label.toUpperCase()}
-        </Text>
-        <Text style={styles.emptyPrompt}>
-          ¿Qué definió tu {slot.label.toLowerCase()}?
-        </Text>
+        <Text style={styles.emptyLabel}>{SLOT_LABEL[slot.timeOfDay]?.toUpperCase()}</Text>
+        <Text style={styles.emptyPrompt}>¿Qué definió tu {SLOT_LABEL[slot.timeOfDay]?.toLowerCase()}?</Text>
       </View>
 
       <View style={styles.addButton}>
@@ -114,29 +92,23 @@ function EmptyBlock({ slot, onAdd }) {
   );
 }
 
-// --- Componente principal ---
-
 export function TrackBlock({ slot, onAdd, onPlay }) {
-  if (slot.track) {
-    return <FilledBlock slot={slot} onPlay={onPlay} />;
-  }
+  if (slot.track) return <FilledBlock slot={slot} onPlay={onPlay} />;
   return <EmptyBlock slot={slot} onAdd={onAdd} />;
 }
 
-// --- Estilos iOS ---
-
 const styles = StyleSheet.create({
-  // Filled
   filledContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1C1C1E',   // iOS systemGray6 dark
-    borderRadius: 16,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.lg,
     paddingVertical: 14,
     paddingRight: 14,
     paddingLeft: 20,
     gap: 12,
     overflow: 'hidden',
+    ...Shadow.md,
   },
   accentBar: {
     position: 'absolute',
@@ -146,10 +118,10 @@ const styles = StyleSheet.create({
     width: 3,
   },
   coverImage: {
-    width: 58,
-    height: 58,
-    borderRadius: 10,            // iOS typical album art corners
-    backgroundColor: '#2C2C2E',
+    width: 56,
+    height: 56,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.bg,
     flexShrink: 0,
   },
   trackInfo: {
@@ -158,27 +130,27 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 10,
-    color: '#636366',            // iOS secondaryLabel dark
+    color: Colors.textMuted,
     letterSpacing: 1.2,
     fontWeight: '600',
     marginBottom: 4,
   },
   trackTitle: {
     fontSize: 15,
-    fontWeight: '600',           // SF Pro semibold
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    letterSpacing: -0.2,
   },
   trackArtist: {
     fontSize: 13,
     fontWeight: '400',
-    color: '#8E8E93',            // iOS secondaryLabel
+    color: Colors.textMuted,
     marginTop: 1,
   },
   trackNote: {
     fontSize: 12,
-    color: '#636366',
-    marginTop: 6,
+    color: Colors.textMuted,
+    marginTop: 5,
     lineHeight: 16,
     fontStyle: 'italic',
   },
@@ -192,24 +164,22 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#3A3A3C',
   },
   segmentText: {
     fontSize: 10,
-    color: '#48484A',
+    color: Colors.textMuted,
     fontVariant: ['tabular-nums'],
     letterSpacing: 0.3,
   },
-
-  // Play button — estilo iOS circular
   playButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#2C2C2E',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    ...Shadow.sm,
   },
   playTriangle: {
     width: 0,
@@ -219,51 +189,49 @@ const styles = StyleSheet.create({
     borderLeftWidth: 10,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
-    borderLeftColor: '#EBEBF5',  // iOS label dark
+    borderLeftColor: Colors.primary,
     marginLeft: 2,
   },
-
-  // Empty
   emptyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1C1C1E',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#2C2C2E',
+    backgroundColor: Colors.card,
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
     borderStyle: 'dashed',
     paddingVertical: 20,
     paddingRight: 14,
     paddingLeft: 20,
     overflow: 'hidden',
+    ...Shadow.sm,
   },
-  emptyLeft: {
-    flex: 1,
-    gap: 4,
-  },
+  emptyLeft: { flex: 1, gap: 4 },
   emptyLabel: {
     fontSize: 10,
-    color: '#3A3A3C',
+    color: Colors.textMuted,
     letterSpacing: 1.2,
     fontWeight: '600',
   },
   emptyPrompt: {
     fontSize: 13,
-    color: '#3A3A3C',
+    color: Colors.textMuted,
     fontStyle: 'italic',
   },
   addButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#2C2C2E',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
   },
   addButtonIcon: {
     fontSize: 20,
-    color: '#636366',
+    color: Colors.primary,
     lineHeight: 22,
     marginTop: -1,
   },

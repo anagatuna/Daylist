@@ -6,14 +6,15 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AudioPlayer from './AudioPlayer';
 import { getLyrics } from '@/lib/musixmatch';
-import { Colors, Radius } from '@/constants/Theme';
+import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const SLOT_CONFIG = {
-  morning:   { label: 'Mañana',   emoji: '🌸' },
-  afternoon: { label: 'Tarde',    emoji: '☀️' },
-  night:     { label: 'Noche',    emoji: '🌙' },
+  morning:   { label: 'Mañana' },
+  afternoon: { label: 'Tarde' },
+  night:     { label: 'Noche' },
 };
 
 function parseLyrics(text) {
@@ -26,7 +27,7 @@ export default function SongCard({ song, slot }) {
   const [lyrics, setLyrics] = useState(null);
   const [loadingLyrics, setLoadingLyrics] = useState(false);
 
-  const config = SLOT_CONFIG[slot] ?? { label: slot, emoji: '🎵' };
+  const config = SLOT_CONFIG[slot] ?? { label: slot };
   const hasSnippet = song.lyricSnippet && (Array.isArray(song.lyricSnippet) ? song.lyricSnippet.length > 0 : true);
 
   async function openLyrics() {
@@ -55,7 +56,7 @@ export default function SongCard({ song, slot }) {
   return (
     <View style={styles.card}>
       {/* Slot label */}
-      <Text style={styles.slotLabel}>{config.emoji} {config.label.toUpperCase()}</Text>
+      <Text style={styles.slotLabel}>{config.label.toUpperCase()}</Text>
 
       {/* Main content */}
       <View style={styles.main}>
@@ -94,7 +95,7 @@ export default function SongCard({ song, slot }) {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.spotifyBtn} onPress={openSpotify}>
-          <Ionicons name="musical-notes" size={12} color="#1DB954" />
+          <MaterialCommunityIcons name="spotify" size={15} color="#1DB954" />
           <Text style={styles.spotifyText}>Abrir en Spotify</Text>
         </TouchableOpacity>
       </View>
@@ -107,10 +108,10 @@ export default function SongCard({ song, slot }) {
             style={styles.modalHero}
             blurRadius={40}>
             <LinearGradient
-              colors={['rgba(10,10,10,0.2)', 'rgba(10,10,10,1)']}
+              colors={['rgba(242,242,247,0.1)', 'rgba(242,242,247,1)']}
               style={styles.heroGradient}>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setShowLyrics(false)}>
-                <Ionicons name="chevron-down" size={22} color={Colors.textSecondary} />
+                <Ionicons name="chevron-down" size={22} color={Colors.textMuted} />
               </TouchableOpacity>
               <View style={styles.heroRow}>
                 {song.albumImage && <Image source={{ uri: song.albumImage }} style={styles.heroCover} />}
@@ -148,7 +149,7 @@ export default function SongCard({ song, slot }) {
               ))
             ) : (
               <View style={styles.noLyrics}>
-                <Text style={styles.noLyricsEmoji}>🎵</Text>
+                <Ionicons name="musical-note-outline" size={40} color={Colors.border} />
                 <Text style={styles.noLyricsText}>Letra no disponible</Text>
               </View>
             )}
@@ -165,25 +166,41 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    ...Shadow.md,
   },
   slotLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: Colors.primary,
     letterSpacing: 1.5,
     marginBottom: 12,
   },
   main: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   cover: { width: 72, height: 72, borderRadius: Radius.md },
-  coverFallback: { backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },
+  coverFallback: { backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, gap: 3 },
   trackName: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600', lineHeight: 20 },
   artist: { color: Colors.primary, fontSize: 13 },
   album: { color: Colors.textMuted, fontSize: 12 },
-  phrase: { color: Colors.textSecondary, fontSize: 13, fontStyle: 'italic', marginTop: 12, lineHeight: 19, paddingLeft: 4, borderLeftWidth: 2, borderLeftColor: Colors.borderLight },
-  actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.border },
+  phrase: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginTop: 12,
+    lineHeight: 19,
+    paddingLeft: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.secondary,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   actionText: { color: Colors.textMuted, fontSize: 12 },
   spotifyBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -203,8 +220,10 @@ const styles = StyleSheet.create({
   lyricsBody: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 60 },
   stanza: { marginBottom: 24 },
   lyricLine: { color: Colors.textSecondary, fontSize: 17, lineHeight: 30 },
-  lyricLineHL: { color: Colors.textPrimary, fontWeight: '600', backgroundColor: 'rgba(192,132,252,0.08)', borderRadius: 4, overflow: 'hidden' },
-  noLyrics: { alignItems: 'center', marginTop: 60, gap: 10 },
-  noLyricsEmoji: { fontSize: 40 },
+  lyricLineHL: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  noLyrics: { alignItems: 'center', marginTop: 60, gap: 12 },
   noLyricsText: { color: Colors.textMuted, fontSize: 15 },
 });

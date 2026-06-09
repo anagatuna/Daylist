@@ -4,6 +4,7 @@ import {
   Image, StyleSheet, ActivityIndicator, Alert, ScrollView, Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
@@ -15,12 +16,13 @@ import AudioPlayer from '@/components/AudioPlayer';
 import { Colors, Radius } from '@/constants/Theme';
 
 const SLOTS = [
-  { key: 'morning', label: '🌅 Mañana' },
-  { key: 'afternoon', label: '☀️ Tarde' },
-  { key: 'night', label: '🌙 Noche' },
+  { key: 'morning',   label: 'Mañana' },
+  { key: 'afternoon', label: 'Tarde' },
+  { key: 'night',     label: 'Noche' },
 ];
 
 export default function CreatePostScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [songs, setSongs] = useState({ morning: null, afternoon: null, night: null });
   const [activeSlot, setActiveSlot] = useState(null);
@@ -153,15 +155,20 @@ export default function CreatePostScreen() {
         if (songs[key]) songData[key] = songs[key];
       });
 
+      const userDoc2 = await getDoc(doc(db, 'users', user.uid));
+      const avatar = userDoc2.data()?.avatar ?? null;
+
       if (existingDoc) {
         await updateDoc(doc(db, 'posts', existingDoc.id), {
           songs: songData,
+          avatar,
           updatedAt: serverTimestamp(),
         });
       } else {
         await addDoc(collection(db, 'posts'), {
           uid: user.uid,
           displayName: user.displayName,
+          avatar,
           date: today,
           songs: songData,
           createdAt: serverTimestamp(),
@@ -294,7 +301,7 @@ export default function CreatePostScreen() {
               </View>
             ) : (
               <TouchableOpacity style={styles.addBtn} onPress={() => setActiveSlot(key)}>
-                <Ionicons name="add-circle-outline" size={22} color="#1DB954" />
+                <Ionicons name="add-circle-outline" size={22} color={Colors.primary} />
                 <Text style={styles.addBtnText}>Agregar canción</Text>
               </TouchableOpacity>
             )}
@@ -302,10 +309,10 @@ export default function CreatePostScreen() {
         ))}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity onPress={publish} disabled={saving} activeOpacity={0.85}>
           <LinearGradient colors={Colors.gradientPrimary} style={styles.publishBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishBtnText}>Publicar ✨</Text>}
+            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishBtnText}>Publicar</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -342,7 +349,7 @@ export default function CreatePostScreen() {
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <View>
-              <Text style={styles.modalTitle}>Elige una línea ✨</Text>
+              <Text style={styles.modalTitle}>Elige una línea</Text>
               <Text style={styles.modalSub}>Toca la letra que quieres mostrar en tu post</Text>
             </View>
             <TouchableOpacity onPress={() => setLyricModal(null)}>
@@ -364,7 +371,7 @@ export default function CreatePostScreen() {
           {!loadingLyrics && lyricLines.length > 0 && (
             <TouchableOpacity onPress={() => setLyricModal(null)} activeOpacity={0.85} style={{ paddingHorizontal: 20, marginBottom: 8 }}>
               <LinearGradient colors={Colors.gradientPrimary} style={[styles.saveBtn, { marginTop: 0 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                <Text style={styles.saveBtnText}>Listo ✨</Text>
+                <Text style={styles.saveBtnText}>Listo</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -387,7 +394,7 @@ export default function CreatePostScreen() {
             />
           ) : (
             <View style={styles.noLyricsEmpty}>
-              <Text style={{ fontSize: 36 }}>🎵</Text>
+              <Ionicons name="musical-note-outline" size={40} color={Colors.border} />
               <Text style={styles.noLyricsText}>Letra no disponible para esta canción</Text>
             </View>
           )}
@@ -399,7 +406,7 @@ export default function CreatePostScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { padding: 20, paddingBottom: 100 },
+  scroll: { padding: 20, paddingBottom: 110 },
   title: { color: Colors.textPrimary, fontSize: 22, fontWeight: '800', marginBottom: 24 },
   slotSection: { marginBottom: 20 },
   slotLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
@@ -414,8 +421,8 @@ const styles = StyleSheet.create({
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actionBtnText: { color: Colors.textSecondary, fontSize: 12 },
   phrasePreview: { color: Colors.textSecondary, fontStyle: 'italic', fontSize: 13, marginTop: 8 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: Colors.bg, borderTopWidth: 1, borderTopColor: Colors.border },
-  publishBtn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', overflow: 'hidden' },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 32, paddingTop: 12, backgroundColor: Colors.bg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border },
+  publishBtn: { borderRadius: Radius.pill, paddingVertical: 15, alignItems: 'center', overflow: 'hidden' },
   publishBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingTop: 20 },
   searchTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '600', flex: 1 },

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image, StatusBar } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -8,13 +9,22 @@ import { useAuth } from '@/hooks/useAuth';
 import { LinearGradient } from 'expo-linear-gradient';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
-import { Colors, Radius } from '@/constants/Theme';
+import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const SLOTS = ['morning', 'afternoon', 'night'];
+
+function formatPostDate(isoDate) {
+  const d = new Date(isoDate + 'T12:00:00');
+  const day   = d.toLocaleDateString('es-MX', { weekday: 'long' });
+  const num   = d.getDate();
+  const month = d.toLocaleDateString('es-MX', { month: 'long' });
+  return `${day.charAt(0).toUpperCase() + day.slice(1)}, ${num} de ${month}`;
+}
 
 export default function UserProfileScreen() {
   const { uid } = useLocalSearchParams();
   const { user } = useAuth();
+  const router = useRouter();
   const me = user?.uid;
 
   const [profile, setProfile] = useState(null);
@@ -63,26 +73,34 @@ export default function UserProfileScreen() {
 
   if (!me || loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center' }}>
-        <ActivityIndicator color="#1DB954" />
+      <View style={{ flex: 1, backgroundColor: Colors.bg, justifyContent: 'center' }}>
+        <ActivityIndicator color={Colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
       <FlatList
         data={posts}
         keyExtractor={p => p.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
+            <LinearGradient
+              colors={['rgba(180,141,224,0.18)', 'rgba(218,143,189,0.08)', 'transparent']}
+              style={StyleSheet.absoluteFill}
+            />
+            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+              <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
+            </TouchableOpacity>
             {profile?.avatar ? (
               <Image source={{ uri: profile.avatar }} style={styles.avatarImg} />
             ) : (
-              <View style={styles.avatar}>
+              <LinearGradient colors={Colors.gradientPrimary} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                 <Text style={styles.avatarText}>{profile?.displayName?.[0]?.toUpperCase()}</Text>
-              </View>
+              </LinearGradient>
             )}
             <Text style={styles.name}>{profile?.displayName}</Text>
             {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
@@ -107,7 +125,7 @@ export default function UserProfileScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.postBlock}>
-            <Text style={styles.postDate}>{item.date}</Text>
+            <Text style={styles.postDate}>{formatPostDate(item.date)}</Text>
             {SLOTS.map(slot =>
               item.songs?.[slot] ? <SongCard key={slot} song={item.songs[slot]} slot={slot} /> : null
             )}
@@ -116,15 +134,16 @@ export default function UserProfileScreen() {
         )}
         ListEmptyComponent={<Text style={styles.empty}>Este usuario no ha publicado nada</Text>}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  header: { alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: Colors.border, marginBottom: 8 },
-  avatarImg: { width: 84, height: 84, borderRadius: 42, marginBottom: 12 },
-  avatar: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  header: { alignItems: 'center', paddingTop: 16, paddingBottom: 32, paddingHorizontal: 24, backgroundColor: Colors.surface, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, marginHorizontal: -16, marginBottom: 28, overflow: 'hidden', ...Shadow.md },
+  backBtn: { alignSelf: 'flex-start', width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center', marginBottom: 12, ...Shadow.sm },
+  avatarImg: { width: 84, height: 84, borderRadius: 42, marginBottom: 12, ...Shadow.md },
+  avatar: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 12, backgroundColor: Colors.border },
   avatarText: { color: '#fff', fontWeight: '800', fontSize: 32 },
   bio: { color: Colors.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 8, paddingHorizontal: 20, lineHeight: 18 },
   name: { color: Colors.textPrimary, fontSize: 21, fontWeight: '800' },
@@ -133,7 +152,7 @@ const styles = StyleSheet.create({
   friendBtnActive: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.card, borderRadius: Radius.pill, paddingHorizontal: 18, paddingVertical: 11, marginTop: 16, borderWidth: 1, borderColor: Colors.border },
   friendBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   friendBtnTextActive: { color: Colors.textMuted, fontWeight: '600', fontSize: 14 },
-  list: { padding: 16 },
+  list: { paddingHorizontal: 16, paddingBottom: 40 },
   postBlock: { marginBottom: 24 },
   postDate: { color: Colors.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 10 },
   empty: { color: Colors.textMuted, textAlign: 'center', marginTop: 40 },

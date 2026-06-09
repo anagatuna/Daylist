@@ -11,7 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { Colors, Radius } from '@/constants/Theme';
+import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -133,7 +133,7 @@ export default function EditProfileScreen() {
             <LinearGradient colors={Colors.gradientPrimary} style={styles.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               {saving
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.saveBtnText}>Guardar cambios ✨</Text>}
+                : <Text style={styles.saveBtnText}>Guardar cambios</Text>}
             </LinearGradient>
           </TouchableOpacity>
 
@@ -147,14 +147,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
   scroll: { padding: 24, paddingBottom: 48 },
   avatarSection: { alignItems: 'center', marginBottom: 32, marginTop: 8 },
-  avatarImg: { width: 100, height: 100, borderRadius: 50 },
-  avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center' },
+  avatarImg: { width: 100, height: 100, borderRadius: 50, ...Shadow.md },
+  avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', ...Shadow.md },
   avatarInitial: { color: '#fff', fontSize: 40, fontWeight: '800' },
   cameraBtn: { position: 'absolute', bottom: 0, right: 0, borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: Colors.bg },
   changePhotoText: { color: Colors.primary, fontSize: 14, marginTop: 10, fontWeight: '500' },
   field: { marginBottom: 20 },
   label: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 8 },
-  input: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: 15, color: Colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: Colors.border },
+  input: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: 15, color: Colors.textPrimary, fontSize: 15, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, ...Shadow.sm },
   bioInput: { minHeight: 100, textAlignVertical: 'top' },
   charCount: { color: Colors.textMuted, fontSize: 11, textAlign: 'right', marginTop: 4 },
   saveBtn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', marginTop: 8 },

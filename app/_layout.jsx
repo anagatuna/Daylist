@@ -69,7 +69,7 @@ export default function RootLayout() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="post/create" options={{ presentation: 'modal', headerShown: true, title: 'Nueva publicación', ...headerTheme }} />
-      <Stack.Screen name="user/[uid]" options={{ headerShown: true, title: '', ...headerTheme }} />
+      <Stack.Screen name="user/[uid]" options={{ headerShown: false }} />
       <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Editar perfil', presentation: 'modal', ...headerTheme }} />
     </Stack>
   );

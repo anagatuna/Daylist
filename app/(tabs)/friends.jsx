@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Image,
+  TextInput, ActivityIndicator, Alert, Image, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { notifyFriendRequest } from '@/lib/notifications';
-import { Colors, Radius } from '@/constants/Theme';
+import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 export default function FriendsScreen() {
   const { user } = useAuth();
@@ -73,7 +73,7 @@ export default function FriendsScreen() {
     try {
       await updateDoc(doc(db, 'users', targetUid), { friendRequests: arrayUnion(uid) });
       notifyFriendRequest(targetUid, user.displayName).catch(() => {});
-      Alert.alert('✨ Solicitud enviada');
+      Alert.alert('Solicitud enviada');
     } catch {
       Alert.alert('Error enviando solicitud');
     }
@@ -127,13 +127,15 @@ export default function FriendsScreen() {
   }
 
   const TABS = [
-    { key: 'friends', label: 'Amigos' },
+    { key: 'friends',  label: 'Amigos' },
     { key: 'requests', label: `Solicitudes${requests.length ? ` (${requests.length})` : ''}` },
-    { key: 'search', label: 'Buscar' },
+    { key: 'search',   label: 'Buscar' },
   ];
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+
       {/* Tabs */}
       <View style={styles.tabsRow}>
         {TABS.map(t => (
@@ -156,7 +158,12 @@ export default function FriendsScreen() {
           data={friends}
           keyExtractor={u => u.id}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<View style={styles.empty}><Text style={styles.emptyEmoji}>🌸</Text><Text style={styles.emptyText}>Aún no tienes amigos. ¡Búscalos!</Text></View>}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="people-outline" size={40} color={Colors.border} />
+              <Text style={styles.emptyText}>Aún no tienes amigos. ¡Búscalos!</Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <UserRow item={item} right={
               <TouchableOpacity onPress={() => removeFriend(item.id)}>
@@ -170,7 +177,12 @@ export default function FriendsScreen() {
           data={requests}
           keyExtractor={u => u.id}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<View style={styles.empty}><Text style={styles.emptyEmoji}>💌</Text><Text style={styles.emptyText}>No hay solicitudes pendientes</Text></View>}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="mail-outline" size={40} color={Colors.border} />
+              <Text style={styles.emptyText}>No hay solicitudes pendientes</Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <UserRow item={item} right={
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -189,16 +201,26 @@ export default function FriendsScreen() {
       ) : (
         <View style={{ flex: 1 }}>
           <View style={styles.searchRow}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar por nombre..."
-              placeholderTextColor={Colors.textMuted}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={searchUsers}
-              returnKeyType="search"
-              autoCapitalize="none"
-            />
+            <View style={styles.searchInputWrapper}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar por nombre..."
+                placeholderTextColor={Colors.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={searchUsers}
+                returnKeyType="search"
+                autoCapitalize="none"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearBtn}
+                  onPress={() => { setSearchQuery(''); setSearchResults([]); }}
+                >
+                  <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
             <TouchableOpacity onPress={searchUsers} activeOpacity={0.85}>
               <LinearGradient colors={Colors.gradientPrimary} style={styles.searchBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 {searching ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="search" size={18} color="#fff" />}
@@ -210,14 +232,21 @@ export default function FriendsScreen() {
             data={searchResults}
             keyExtractor={u => u.id}
             contentContainerStyle={styles.list}
-            ListEmptyComponent={searchQuery.trim() ? <View style={styles.empty}><Text style={styles.emptyEmoji}>🔍</Text><Text style={styles.emptyText}>No se encontraron usuarios</Text></View> : null}
+            ListEmptyComponent={
+              searchQuery.trim() ? (
+                <View style={styles.empty}>
+                  <Ionicons name="search-outline" size={40} color={Colors.border} />
+                  <Text style={styles.emptyText}>No se encontraron usuarios</Text>
+                </View>
+              ) : null
+            }
             renderItem={({ item }) => {
               const isFriend = friends.some(f => f.id === item.id);
               const requested = item.friendRequests?.includes(uid);
               return (
                 <UserRow item={item} right={
                   isFriend ? (
-                    <Text style={styles.alreadyFriend}>✓ Amigo</Text>
+                    <Text style={styles.alreadyFriend}>Amigo</Text>
                   ) : requested ? (
                     <Text style={styles.alreadyFriend}>Enviada</Text>
                   ) : (
@@ -239,28 +268,66 @@ export default function FriendsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  tabsRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: Colors.border },
-  tab: { flex: 1, paddingVertical: 14, alignItems: 'center', position: 'relative' },
-  tabActive: {},
-  tabText: { color: Colors.textMuted, fontSize: 13, fontWeight: '500' },
+
+  tabsRow: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  tab:          { flex: 1, paddingVertical: 14, alignItems: 'center', position: 'relative' },
+  tabActive:    {},
+  tabText:      { color: Colors.textMuted, fontSize: 13, fontWeight: '500' },
   tabTextActive: { color: Colors.textPrimary, fontWeight: '600' },
   tabIndicator: { position: 'absolute', bottom: 0, left: 16, right: 16, height: 2, borderRadius: 1 },
+
   list: { padding: 16, gap: 8 },
-  userRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: Colors.border },
-  avatarImg: { width: 42, height: 42, borderRadius: 21 },
-  avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.md,
+    padding: 14,
+    ...Shadow.sm,
+  },
+  avatarImg:  { width: 42, height: 42, borderRadius: 21 },
+  avatar:     { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 17 },
-  userName: { color: Colors.textPrimary, fontSize: 15, fontWeight: '500' },
-  acceptBtn: { borderRadius: Radius.pill, paddingHorizontal: 14, paddingVertical: 7 },
+  userName:   { color: Colors.textPrimary, fontSize: 15, fontWeight: '500' },
+
+  acceptBtn:     { borderRadius: Radius.pill, paddingHorizontal: 14, paddingVertical: 7 },
   acceptBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  rejectBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border },
-  addBtn: {},
+  rejectBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: Colors.bg,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
+  },
+  addBtn:    {},
   addBtnGrad: { borderRadius: 18, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   alreadyFriend: { color: Colors.textMuted, fontSize: 13 },
-  empty: { alignItems: 'center', marginTop: 50, gap: 8 },
-  emptyEmoji: { fontSize: 36 },
+
+  empty:     { alignItems: 'center', marginTop: 50, gap: 10 },
   emptyText: { color: Colors.textMuted, textAlign: 'center', fontSize: 14 },
-  searchRow: { flexDirection: 'row', gap: 10, padding: 16 },
-  searchInput: { flex: 1, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 13, color: Colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: Colors.border },
+
+  searchRow:         { flexDirection: 'row', gap: 10, padding: 16 },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    ...Shadow.sm,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 13,
+    color: Colors.textPrimary,
+    fontSize: 15,
+  },
+  clearBtn: { paddingRight: 12 },
   searchBtn: { borderRadius: Radius.md, padding: 13, justifyContent: 'center', alignItems: 'center', width: 48 },
 });
