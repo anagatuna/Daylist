@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/Theme';
 
 export default function AudioPlayer({ previewUrl, startSec = 0, endSec = null }) {
   const soundRef = useRef(null);
@@ -84,7 +85,7 @@ export default function AudioPlayer({ previewUrl, startSec = 0, endSec = null })
         <Ionicons
           name={playing ? 'pause-circle' : 'play-circle'}
           size={36}
-          color="#1DB954"
+          color={Colors.primary}
         />
       </TouchableOpacity>
       <View style={styles.barBg}>
@@ -106,9 +107,9 @@ function formatSec(s) {
 const styles = StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   btn: { padding: 2 },
-  barBg: { flex: 1, height: 2, backgroundColor: '#222', borderRadius: 1 },
-  barFill: { height: 2, backgroundColor: '#c084fc', borderRadius: 1 },
-  time: { color: '#52525b', fontSize: 10, minWidth: 36 },
+  barBg: { flex: 1, height: 2, backgroundColor: Colors.border, borderRadius: 1 },
+  barFill: { height: 2, backgroundColor: Colors.primary, borderRadius: 1 },
+  time: { color: Colors.textMuted, fontSize: 10, minWidth: 36 },
   noPreviewRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  noPreviewText: { color: '#52525b', fontSize: 11 },
+  noPreviewText: { color: Colors.textMuted, fontSize: 11 },
 });

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -45,18 +45,14 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: Colors.bg,
+          backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 58,
-          paddingBottom: 8,
         },
-        tabBarActiveTintColor: Colors.textPrimary,
+        tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
-        headerStyle: { backgroundColor: Colors.bg },
-        headerTintColor: Colors.textPrimary,
-        headerShadowVisible: false,
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="index"
@@ -97,5 +93,5 @@ const styles = StyleSheet.create({
     borderRadius: 8, minWidth: 16, height: 16,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
   },
-  badgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+  badgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
 });

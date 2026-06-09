@@ -5,20 +5,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
-import { Colors, Radius } from '@/constants/Theme';
+import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const SLOTS_META = [
-  { key: 'morning',   label: 'Mañana',   emoji: '☀️' },
-  { key: 'afternoon', label: 'Tarde',     emoji: '🌅' },
-  { key: 'night',     label: 'Noche',     emoji: '🌙' },
+  { key: 'morning',   label: 'Mañana' },
+  { key: 'afternoon', label: 'Tarde' },
+  { key: 'night',     label: 'Noche' },
 ];
 
 function formatDate(isoDate) {
@@ -49,7 +49,6 @@ export default function HomeScreen() {
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     const friends = userDoc.data()?.friends ?? [];
 
-    // Post propio de hoy
     const myQ = query(
       collection(db, 'posts'),
       where('uid', '==', user.uid),
@@ -58,7 +57,6 @@ export default function HomeScreen() {
     const mySnap = await getDocs(myQ);
     setMyPost(mySnap.empty ? null : { id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
 
-    // Posts de amigos
     if (friends.length > 0) {
       const fQ = query(
         collection(db, 'posts'),
@@ -67,7 +65,15 @@ export default function HomeScreen() {
         orderBy('createdAt', 'desc')
       );
       const fSnap = await getDocs(fQ);
-      setFriendPosts(fSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const posts = fSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Enriquecer con avatar si el post no lo tiene guardado
+      const enriched = await Promise.all(posts.map(async p => {
+        if (p.avatar) return p;
+        const uSnap = await getDoc(doc(db, 'users', p.uid));
+        return { ...p, avatar: uSnap.data()?.avatar ?? null };
+      }));
+      setFriendPosts(enriched);
     } else {
       setFriendPosts([]);
     }
@@ -77,20 +83,25 @@ export default function HomeScreen() {
     if (user) loadData().finally(() => setLoading(false));
   }, [user]);
 
+  // Recargar al volver a la pantalla para tener reacciones y avatares actualizados
+  useFocusEffect(
+    useCallback(() => {
+      if (user && !loading) loadData();
+    }, [user])
+  );
+
   const refresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   }, []);
 
-  // Construir slots para TrackBlock con datos reales
   function buildSlots(post) {
-    return SLOTS_META.map(({ key, label, emoji }) => {
+    return SLOTS_META.map(({ key, label }) => {
       const s = post?.songs?.[key];
       return {
         timeOfDay: key,
         label,
-        emoji,
         track: s ? {
           title: s.name,
           artist: s.artist,
@@ -109,7 +120,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         style={styles.scroll}
@@ -117,7 +128,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.primary} />}
       >
-        {/* ── Header ── */}
+        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <Text style={styles.logo}>daylist</Text>
@@ -127,7 +138,7 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.dateTitle}>{dayName}, {dayNum} de {month}</Text>
           <View style={styles.statusRow}>
-            <View style={[styles.statusDot, { backgroundColor: remaining === 0 ? '#34D399' : Colors.primary }]} />
+            <View style={[styles.statusDot, { backgroundColor: remaining === 0 ? '#34C759' : Colors.primary }]} />
             <Text style={styles.statusText}>
               {remaining === 0 ? 'Día completo' : `${remaining} ${remaining === 1 ? 'momento' : 'momentos'} por agregar`}
             </Text>
@@ -136,7 +147,7 @@ export default function HomeScreen() {
 
         <View style={styles.divider} />
 
-        {/* ── Mis canciones ── */}
+        {/* Mis canciones */}
         <View style={styles.section}>
           <Text style={styles.sectionHeader}>HOY</Text>
           {loading ? (
@@ -157,7 +168,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* ── Feed amigos ── */}
+        {/* Feed amigos */}
         {friendPosts.length > 0 && (
           <View style={styles.section}>
             <View style={styles.divider} />
@@ -198,28 +209,43 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { flex: 1 },
+  safe:    { flex: 1, backgroundColor: Colors.bg },
+  scroll:  { flex: 1 },
   content: { paddingHorizontal: 16, paddingBottom: 48 },
-  header: { paddingTop: Platform.OS === 'ios' ? 8 : 16, paddingHorizontal: 4, marginBottom: 20 },
+
+  header:    { paddingTop: Platform.OS === 'ios' ? 8 : 16, paddingHorizontal: 4, marginBottom: 20 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  logo: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1 },
-  addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border },
-  dateTitle: { fontSize: 14, color: Colors.textSecondary, fontWeight: '400' },
+  logo:      { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -1 },
+  addBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: Colors.card,
+    alignItems: 'center', justifyContent: 'center',
+    ...Shadow.sm,
+  },
+  dateTitle: { fontSize: 14, color: Colors.textMuted, fontWeight: '400' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
   statusDot: { width: 5, height: 5, borderRadius: 3 },
   statusText: { fontSize: 12, color: Colors.textMuted },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginBottom: 20 },
-  section: { marginBottom: 8 },
+
+  divider:       { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border, marginBottom: 20 },
+  section:       { marginBottom: 8 },
   sectionHeader: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, letterSpacing: 1.5, marginBottom: 14, paddingHorizontal: 4 },
-  blocksGroup: {},
-  friendPost: { marginBottom: 24 },
+  blocksGroup:   {},
+
+  friendPost:   { marginBottom: 24 },
   friendHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12, paddingHorizontal: 4 },
-  avatarImg: { width: 38, height: 38, borderRadius: 19 },
-  avatarFallback: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.borderLight },
+  avatarImg:    { width: 38, height: 38, borderRadius: 19 },
+  avatarFallback: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: Colors.card,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
+    ...Shadow.sm,
+  },
   avatarText: { color: Colors.primary, fontWeight: '700', fontSize: 15 },
   friendName: { color: Colors.textPrimary, fontWeight: '600', fontSize: 14 },
-  friendSub: { color: Colors.textMuted, fontSize: 11, marginTop: 1 },
-  emptyFriends: { alignItems: 'center', marginTop: 40, paddingHorizontal: 20 },
+  friendSub:  { color: Colors.textMuted, fontSize: 11, marginTop: 1 },
+
+  emptyFriends:     { alignItems: 'center', marginTop: 40, paddingHorizontal: 20 },
   emptyFriendsText: { color: Colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20 },
 });

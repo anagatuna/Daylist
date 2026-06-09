@@ -19,7 +19,11 @@ service cloud.firestore {
     match /posts/{postId} {
       allow read: if isAuth();
       allow create: if isOwner(request.resource.data.uid);
-      allow update, delete: if isOwner(resource.data.uid);
+      // El dueño puede editar todo; cualquier usuario autenticado puede editar
+      // solo el campo reactions (para dejar reacciones en posts ajenos)
+      allow update: if isOwner(resource.data.uid)
+                    || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']));
+      allow delete: if isOwner(resource.data.uid);
     }
   }
 }
