@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   View, Text, Image, TouchableOpacity, StyleSheet,
   Modal, ScrollView, ActivityIndicator, Linking,
-  ImageBackground,
+  ImageBackground, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -106,7 +106,7 @@ export default function SongCard({ song, slot }) {
           <ImageBackground
             source={song.albumImage ? { uri: song.albumImage } : undefined}
             style={styles.modalHero}
-            blurRadius={40}>
+            blurRadius={Platform.OS === 'ios' ? 40 : 8}>
             <LinearGradient
               colors={['rgba(242,242,247,0.1)', 'rgba(242,242,247,1)']}
               style={styles.heroGradient}>

@@ -77,6 +77,7 @@ export default function ProfileScreen() {
         ListHeaderComponent={
           <View>
             {/* Hero */}
+            <View style={styles.heroShadow}>
             <View style={styles.hero}>
               <LinearGradient
                 colors={['rgba(180,141,224,0.18)', 'rgba(218,143,189,0.08)', 'transparent']}
@@ -116,6 +117,7 @@ export default function ProfileScreen() {
                 <Ionicons name="log-out-outline" size={15} color={Colors.textMuted} />
                 <Text style={styles.logoutText}>Cerrar sesión</Text>
               </TouchableOpacity>
+            </View>
             </View>
 
             <Text style={styles.sectionTitle}>HISTORIAL</Text>
@@ -158,6 +160,14 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
 
+  heroShadow: {
+    marginHorizontal: -16,
+    marginBottom: 0,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    backgroundColor: Colors.surface,
+    ...Shadow.md,
+  },
   hero: {
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -166,9 +176,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
-    marginHorizontal: -16,
     overflow: 'hidden',
-    ...Shadow.md,
   },
   editBtn: {
     flexDirection: 'row',
@@ -187,15 +195,15 @@ const styles = StyleSheet.create({
 
   avatarImg:   { width: 72, height: 72, borderRadius: 36, marginBottom: 12, ...Shadow.md },
   avatarLarge: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 12, ...Shadow.md },
-  avatarText:  { color: '#fff', fontWeight: '800', fontSize: 28 },
+  avatarText:  { color: '#fff', fontWeight: '700', fontSize: 28 },
 
-  displayName: { color: Colors.textPrimary, fontSize: 18, fontWeight: '800' },
+  displayName: { color: Colors.textPrimary, fontSize: 18, fontWeight: '700' },
   email:       { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
   bio:         { color: Colors.textSecondary, fontSize: 13, marginTop: 6, textAlign: 'center', lineHeight: 18, paddingHorizontal: 20 },
 
   stats:       { flexDirection: 'row', alignItems: 'center', marginTop: 16, gap: 24 },
   stat:        { alignItems: 'center' },
-  statNum:     { color: Colors.textPrimary, fontSize: 20, fontWeight: '800' },
+  statNum:     { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
   statLabel:   { color: Colors.textMuted, fontSize: 11, marginTop: 1 },
   statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: Colors.border },
 

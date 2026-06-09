@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   avatarSection: { alignItems: 'center', marginBottom: 32, marginTop: 8 },
   avatarImg: { width: 100, height: 100, borderRadius: 50, ...Shadow.md },
   avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', ...Shadow.md },
-  avatarInitial: { color: '#fff', fontSize: 40, fontWeight: '800' },
+  avatarInitial: { color: '#fff', fontSize: 40, fontWeight: '700' },
   cameraBtn: { position: 'absolute', bottom: 0, right: 0, borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: Colors.bg },
   changePhotoText: { color: Colors.primary, fontSize: 14, marginTop: 10, fontWeight: '500' },
   field: { marginBottom: 20 },

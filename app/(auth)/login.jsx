@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     ...Shadow.md,
   },
   logoIcon: { fontSize: 32, color: '#fff' },
-  logoText: { fontSize: 40, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1.5 },
+  logoText: { fontSize: 40, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -1.5 },
   logoSub:  { color: Colors.textMuted, fontSize: 14, marginTop: 4 },
 
   form: { gap: 16 },

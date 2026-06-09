@@ -89,6 +89,7 @@ export default function UserProfileScreen() {
         keyExtractor={p => p.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
+          <View style={styles.headerShadow}>
           <View style={styles.header}>
             <LinearGradient
               colors={['rgba(180,141,224,0.18)', 'rgba(218,143,189,0.08)', 'transparent']}
@@ -124,6 +125,7 @@ export default function UserProfileScreen() {
               )
             )}
           </View>
+          </View>
         }
         renderItem={({ item }) => (
           <View style={styles.postBlock}>
@@ -153,13 +155,14 @@ export default function UserProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  header: { alignItems: 'center', paddingTop: 16, paddingBottom: 32, paddingHorizontal: 24, backgroundColor: Colors.surface, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, marginHorizontal: -16, marginBottom: 28, overflow: 'hidden', ...Shadow.md },
+  headerShadow: { marginHorizontal: -16, marginBottom: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, backgroundColor: Colors.surface, ...Shadow.md },
+  header: { alignItems: 'center', paddingTop: 16, paddingBottom: 32, paddingHorizontal: 24, backgroundColor: Colors.surface, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
   backBtn: { alignSelf: 'flex-start', width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center', marginBottom: 12, ...Shadow.sm },
   avatarImg: { width: 84, height: 84, borderRadius: 42, marginBottom: 12, ...Shadow.md },
   avatar: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 12, backgroundColor: Colors.border },
-  avatarText: { color: '#fff', fontWeight: '800', fontSize: 32 },
+  avatarText: { color: '#fff', fontWeight: '700', fontSize: 32 },
   bio: { color: Colors.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 8, paddingHorizontal: 20, lineHeight: 18 },
-  name: { color: Colors.textPrimary, fontSize: 21, fontWeight: '800' },
+  name: { color: Colors.textPrimary, fontSize: 21, fontWeight: '700' },
   postCount: { color: Colors.textMuted, fontSize: 13, marginTop: 4 },
   friendBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: Radius.pill, paddingHorizontal: 18, paddingVertical: 11, marginTop: 16 },
   friendBtnActive: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.card, borderRadius: Radius.pill, paddingHorizontal: 18, paddingVertical: 11, marginTop: 16, borderWidth: 1, borderColor: Colors.border },

@@ -408,7 +408,7 @@ export default function CreatePostScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
   scroll: { padding: 20, paddingBottom: 110 },
-  title: { color: Colors.textPrimary, fontSize: 22, fontWeight: '800', marginBottom: 24 },
+  title: { color: Colors.textPrimary, fontSize: 22, fontWeight: '700', marginBottom: 24 },
   slotSection: { marginBottom: 20 },
   slotLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 16, borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)', borderStyle: 'dashed' },

@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
 
   header:    { paddingTop: Platform.OS === 'ios' ? 8 : 16, paddingHorizontal: 4, marginBottom: 20 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  logo:      { fontSize: 26, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1 },
+  logo:      { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -1 },
   addBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: Colors.card,

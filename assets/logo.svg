@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B48DE0"/>
+      <stop offset="100%" stop-color="#DA8FBD"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="1024" height="1024" rx="230" ry="230" fill="url(#bg)"/>
+
+  <!-- Nota musical centrada (♪) dibujada con formas -->
+  <g transform="translate(512, 512)" fill="white">
+    <!-- Cabeza de nota -->
+    <ellipse cx="-90" cy="200" rx="105" ry="78" transform="rotate(-18 -90 200)"/>
+    <!-- Palo vertical -->
+    <rect x="0" y="-240" width="34" height="430" rx="17"/>
+    <!-- Corchete (flag) -->
+    <path d="M34,-240 C160,-180 200,-60 120,80 C160,-40 130,-150 34,-200 Z"/>
+  </g>
+</svg>

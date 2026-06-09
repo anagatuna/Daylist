@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 28 },
 
   header: { marginBottom: 28 },
-  title:    { fontSize: 32, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1 },
+  title:    { fontSize: 32, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -1 },
   subtitle: { color: Colors.textMuted, fontSize: 14, marginTop: 6 },
 
   card: {
