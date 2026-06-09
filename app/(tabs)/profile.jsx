@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   ActivityIndicator, Alert, Image, StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,7 @@ import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
+import Dialog from '@/components/Dialog';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const SLOTS = ['morning', 'afternoon', 'night'];
@@ -33,6 +35,7 @@ export default function ProfileScreen() {
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLogout, setShowLogout] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -57,17 +60,14 @@ export default function ProfileScreen() {
     setLoading(false);
   }
 
-  async function handleLogout() {
-    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Salir', style: 'destructive', onPress: () => signOut(auth) },
-    ]);
+  function handleLogout() {
+    setShowLogout(true);
   }
 
   if (!user) return null;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <FlatList
         data={posts}
@@ -140,7 +140,18 @@ export default function ProfileScreen() {
           ) : null
         }
       />
-    </View>
+
+      <Dialog
+        visible={showLogout}
+        title="Cerrar sesión"
+        message="¿Seguro que quieres salir?"
+        onClose={() => setShowLogout(false)}
+        buttons={[
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Salir', style: 'destructive', onPress: () => signOut(auth) },
+        ]}
+      />
+    </SafeAreaView>
   );
 }
 

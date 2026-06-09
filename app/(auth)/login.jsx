@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform, ActivityIndicator,
   Animated, StatusBar,
 } from 'react-native';
 import { Link } from 'expo-router';
@@ -9,11 +9,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import Dialog from '@/components/Dialog';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dialog, setDialog] = useState({ visible: false, message: '' });
 
   const fadeAnim   = useRef(new Animated.Value(0)).current;
   const slideAnim  = useRef(new Animated.Value(32)).current;
@@ -33,13 +35,35 @@ export default function LoginScreen() {
     ]).start();
   }, []);
 
+  function showError(msg) { setDialog({ visible: true, message: msg }); }
+
+  function friendlyAuthError(code) {
+    switch (code) {
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+        return 'El correo o la contraseña son incorrectos.';
+      case 'auth/invalid-email':
+        return 'El correo no tiene un formato válido.';
+      case 'auth/user-disabled':
+        return 'Esta cuenta ha sido desactivada.';
+      case 'auth/too-many-requests':
+        return 'Demasiados intentos fallidos. Espera un momento e intenta de nuevo.';
+      case 'auth/network-request-failed':
+        return 'Sin conexión a internet. Revisa tu red e intenta de nuevo.';
+      default:
+        return 'Ocurrió un error inesperado. Intenta de nuevo.';
+    }
+  }
+
   async function handleLogin() {
-    if (!email || !password) return Alert.alert('Completa todos los campos');
+    if (!email || !password) return showError('Completa todos los campos');
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
     } catch (e) {
-      Alert.alert('Error', e.message);
+      const msg = friendlyAuthError(e.code);
+      showError(msg);
     } finally {
       setLoading(false);
     }
@@ -113,6 +137,14 @@ export default function LoginScreen() {
           </Link>
         </Animated.View>
       </KeyboardAvoidingView>
+
+      <Dialog
+        visible={dialog.visible}
+        title="Aviso"
+        message={dialog.message}
+        onClose={() => setDialog({ visible: false, message: '' })}
+        buttons={[{ text: 'Entendido', style: 'primary' }]}
+      />
     </View>
   );
 }

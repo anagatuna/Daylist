@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform, ActivityIndicator,
   Animated, StatusBar,
 } from 'react-native';
 import { Link } from 'expo-router';
@@ -10,12 +10,14 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import Dialog from '@/components/Dialog';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dialog, setDialog] = useState({ visible: false, message: '' });
 
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(32)).current;
@@ -27,9 +29,28 @@ export default function RegisterScreen() {
     ]).start();
   }, []);
 
+  function showError(msg) { setDialog({ visible: true, message: msg }); }
+
+  function friendlyAuthError(code) {
+    switch (code) {
+      case 'auth/email-already-in-use':
+        return 'Ya existe una cuenta registrada con ese correo.';
+      case 'auth/invalid-email':
+        return 'El correo no tiene un formato válido.';
+      case 'auth/weak-password':
+        return 'La contraseña es muy débil. Usa al menos 6 caracteres.';
+      case 'auth/too-many-requests':
+        return 'Demasiados intentos. Espera un momento e intenta de nuevo.';
+      case 'auth/network-request-failed':
+        return 'Sin conexión a internet. Revisa tu red e intenta de nuevo.';
+      default:
+        return 'Ocurrió un error inesperado. Intenta de nuevo.';
+    }
+  }
+
   async function handleRegister() {
-    if (!name || !email || !password) return Alert.alert('Completa todos los campos');
-    if (password.length < 6) return Alert.alert('La contraseña debe tener al menos 6 caracteres');
+    if (!name || !email || !password) return showError('Completa todos los campos');
+    if (password.length < 6) return showError('La contraseña debe tener al menos 6 caracteres');
     setLoading(true);
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -44,7 +65,7 @@ export default function RegisterScreen() {
         friendRequests: [],
       });
     } catch (e) {
-      Alert.alert('Error', e.message);
+      showError(friendlyAuthError(e.code));
     } finally {
       setLoading(false);
     }
@@ -106,6 +127,14 @@ export default function RegisterScreen() {
           </Link>
         </Animated.View>
       </KeyboardAvoidingView>
+
+      <Dialog
+        visible={dialog.visible}
+        title="Aviso"
+        message={dialog.message}
+        onClose={() => setDialog({ visible: false, message: '' })}
+        buttons={[{ text: 'Entendido', style: 'primary' }]}
+      />
     </View>
   );
 }
@@ -146,6 +175,7 @@ const styles = StyleSheet.create({
   },
   btn: { borderRadius: Radius.pill, padding: 16, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16, letterSpacing: 0.2 },
+
 
   linkBtn:    { alignItems: 'center', padding: 10, marginTop: 8 },
   linkText:   { color: Colors.textMuted, fontSize: 14 },

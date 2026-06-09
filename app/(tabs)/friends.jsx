@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Image, StatusBar,
+  TextInput, ActivityIndicator, Alert, Image, StatusBar, ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  collection, getDocs, doc, getDoc,
+  collection, getDocs, doc, getDoc, query, where, orderBy,
   updateDoc, arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -14,6 +17,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { notifyFriendRequest } from '@/lib/notifications';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import Dialog from '@/components/Dialog';
+
+const SLOT_LABELS = { morning: 'mañana', afternoon: 'tarde', night: 'noche' };
 
 export default function FriendsScreen() {
   const { user } = useAuth();
@@ -23,14 +29,23 @@ export default function FriendsScreen() {
   const [tab, setTab] = useState('friends');
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [hasUnread, setHasUnread] = useState(false);
+  const [hasUnreadRequests, setHasUnreadRequests] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingActivity, setLoadingActivity] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [removingFriend, setRemovingFriend] = useState(null);
 
   useEffect(() => {
-    if (uid) loadFriends();
+    if (uid) loadFriends().then(() => loadActivity());
   }, [uid]);
+
+  useFocusEffect(useCallback(() => {
+    if (uid && tab === 'activity') loadActivity();
+  }, [uid, tab]));
 
   async function loadFriends() {
     const userDoc = await getDoc(doc(db, 'users', uid));
@@ -42,6 +57,10 @@ export default function FriendsScreen() {
     setFriends(friendDocs);
     setRequests(requestDocs);
     setLoading(false);
+
+    // Punto de solicitudes no vistas
+    const seenCount = parseInt(await AsyncStorage.getItem(`requests_seen_${uid}`) ?? '0', 10);
+    setHasUnreadRequests(requestDocs.length > seenCount);
   }
 
   async function fetchUsers(ids) {
@@ -50,6 +69,93 @@ export default function FriendsScreen() {
       ids.map(id => getDoc(doc(db, 'users', id)).then(d => d.exists() ? { id: d.id, ...d.data() } : null))
     );
     return results.filter(Boolean);
+  }
+
+  async function loadActivity() {
+    if (!uid) return;
+    setLoadingActivity(true);
+    try {
+      const lastSeen = parseInt(await AsyncStorage.getItem(`activity_seen_${uid}`) ?? '0', 10);
+      const items = [];
+
+      // Reacciones en mis posts
+      const myPostsSnap = await getDocs(query(
+        collection(db, 'posts'),
+        where('uid', '==', uid),
+        orderBy('createdAt', 'desc')
+      ));
+      const myPosts = myPostsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Obtener display names de los que reaccionaron
+      const reactorIds = new Set();
+      myPosts.forEach(post => {
+        Object.values(post.reactions ?? {}).forEach(uids => uids.forEach(u => { if (u !== uid) reactorIds.add(u); }));
+      });
+      const reactorDocs = {};
+      await Promise.all([...reactorIds].map(async rid => {
+        const s = await getDoc(doc(db, 'users', rid));
+        reactorDocs[rid] = s.data() ?? {};
+      }));
+
+      myPosts.forEach(post => {
+        const reactions = post.reactions ?? {};
+        Object.entries(reactions).forEach(([emoji, uids]) => {
+          uids.filter(u => u !== uid).forEach(reactorUid => {
+            const rd = reactorDocs[reactorUid] ?? {};
+            items.push({
+              key: `reaction-${post.id}-${emoji}-${reactorUid}`,
+              type: 'reaction',
+              emoji,
+              displayName: rd.displayName ?? 'Alguien',
+              avatar: rd.avatar ?? null,
+              uid: reactorUid,
+              postDate: post.date,
+              postId: post.id,
+              sortKey: post.createdAt?.seconds ?? 0,
+            });
+          });
+        });
+      });
+
+      // Posts recientes de amigos (últimos 7 días)
+      const friendIds = friends.map(f => f.id);
+      if (friendIds.length > 0) {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const fPostsSnap = await getDocs(query(
+          collection(db, 'posts'),
+          where('uid', 'in', friendIds.slice(0, 10)),
+          orderBy('createdAt', 'desc')
+        ));
+        fPostsSnap.docs.forEach(d => {
+          const p = { id: d.id, ...d.data() };
+          const slots = Object.keys(p.songs ?? {}).filter(k => p.songs[k]);
+          items.push({
+            key: `post-${p.id}`,
+            type: 'post',
+            displayName: p.displayName,
+            avatar: p.avatar ?? null,
+            uid: p.uid,
+            postId: p.id,
+            postDate: p.date,
+            slots,
+            sortKey: p.createdAt?.seconds ?? 0,
+          });
+        });
+      }
+
+      // Ordenar más reciente primero
+      items.sort((a, b) => b.sortKey - a.sortKey);
+      setActivity(items);
+
+      // Hay items más nuevos que la última vez que se vio
+      const newest = items[0]?.sortKey ?? 0;
+      setHasUnread(newest > lastSeen);
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setLoadingActivity(false);
+    }
   }
 
   async function searchUsers() {
@@ -95,61 +201,115 @@ export default function FriendsScreen() {
   }
 
   async function removeFriend(friendUid) {
-    Alert.alert('Eliminar amigo', '¿Seguro?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar', style: 'destructive',
-        onPress: async () => {
-          await Promise.all([
-            updateDoc(doc(db, 'users', uid), { friends: arrayRemove(friendUid) }),
-            updateDoc(doc(db, 'users', friendUid), { friends: arrayRemove(uid) }),
-          ]);
-          await loadFriends();
-        },
-      },
+    await Promise.all([
+      updateDoc(doc(db, 'users', uid), { friends: arrayRemove(friendUid) }),
+      updateDoc(doc(db, 'users', friendUid), { friends: arrayRemove(uid) }),
     ]);
+    await loadFriends();
+  }
+
+  function Avatar({ item, size = 42 }) {
+    if (item.avatar) return <Image source={{ uri: item.avatar }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+    return (
+      <LinearGradient colors={Colors.gradientPrimary} style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.4 }}>{item.displayName?.[0]?.toUpperCase()}</Text>
+      </LinearGradient>
+    );
   }
 
   function UserRow({ item, right }) {
     return (
       <TouchableOpacity style={styles.userRow} onPress={() => router.push(`/user/${item.id}`)} activeOpacity={0.7}>
-        {item.avatar ? (
-          <Image source={{ uri: item.avatar }} style={styles.avatarImg} />
-        ) : (
-          <LinearGradient colors={Colors.gradientPrimary} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-            <Text style={styles.avatarText}>{item.displayName?.[0]?.toUpperCase()}</Text>
-          </LinearGradient>
-        )}
+        <Avatar item={item} />
         <Text style={[styles.userName, { flex: 1 }]}>{item.displayName}</Text>
         {right}
       </TouchableOpacity>
     );
   }
 
+  function ActivityItem({ item }) {
+    if (item.type === 'reaction') {
+      return (
+        <TouchableOpacity style={styles.activityRow} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
+          <View style={styles.activityAvatarWrap}>
+            <Avatar item={item} size={40} />
+            <View style={styles.activityEmoji}>
+              <Text style={{ fontSize: 13 }}>{item.emoji}</Text>
+            </View>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.activityText}>
+              <Text style={styles.activityName}>{item.displayName}</Text>
+              {' reaccionó a tu publicación'}
+            </Text>
+            <Text style={styles.activityDate}>{formatDate(item.postDate)}</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+    const slotText = item.slots.map(s => SLOT_LABELS[s] ?? s).join(', ');
+    return (
+      <TouchableOpacity style={styles.activityRow} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
+        <Avatar item={item} size={40} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.activityText}>
+            <Text style={styles.activityName}>{item.displayName}</Text>
+            {` publicó su canción de la ${slotText}`}
+          </Text>
+          <Text style={styles.activityDate}>{formatDate(item.postDate)}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  function formatDate(isoDate) {
+    if (!isoDate) return '';
+    const d = new Date(isoDate + 'T12:00:00');
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (isoDate === today) return 'Hoy';
+    if (isoDate === yesterday) return 'Ayer';
+    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  }
+
   const TABS = [
     { key: 'friends',  label: 'Amigos' },
-    { key: 'requests', label: `Solicitudes${requests.length ? ` (${requests.length})` : ''}` },
+    { key: 'requests', label: 'Solicitudes', dot: hasUnreadRequests && requests.length > 0 },
+    { key: 'activity', label: 'Actividad', dot: hasUnread },
     { key: 'search',   label: 'Buscar' },
   ];
 
+  function handleTabPress(key) {
+    setTab(key);
+    if (key === 'activity') {
+      loadActivity();
+      AsyncStorage.setItem(`activity_seen_${uid}`, String(Math.floor(Date.now() / 1000)));
+      setHasUnread(false);
+    }
+    if (key === 'requests') {
+      AsyncStorage.setItem(`requests_seen_${uid}`, String(requests.length));
+      setHasUnreadRequests(false);
+    }
+  }
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
       {/* Tabs */}
-      <View style={styles.tabsRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsRow}>
         {TABS.map(t => (
           <TouchableOpacity
             key={t.key}
             style={[styles.tab, tab === t.key && styles.tabActive]}
-            onPress={() => setTab(t.key)}>
-            <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]}>{t.label}</Text>
-            {tab === t.key && (
-              <LinearGradient colors={Colors.gradientPrimary} style={styles.tabIndicator} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
-            )}
+            onPress={() => handleTabPress(t.key)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]}>{t.label}</Text>
+              {t.dot && tab !== t.key && <View style={styles.unreadDot} />}
+            </View>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {loading ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
@@ -166,7 +326,7 @@ export default function FriendsScreen() {
           }
           renderItem={({ item }) => (
             <UserRow item={item} right={
-              <TouchableOpacity onPress={() => removeFriend(item.id)}>
+              <TouchableOpacity onPress={() => setRemovingFriend(item)}>
                 <Ionicons name="person-remove-outline" size={20} color={Colors.textMuted} />
               </TouchableOpacity>
             } />
@@ -198,6 +358,23 @@ export default function FriendsScreen() {
             } />
           )}
         />
+      ) : tab === 'activity' ? (
+        loadingActivity ? (
+          <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+        ) : (
+          <FlatList
+            data={activity}
+            keyExtractor={i => i.key}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Ionicons name="notifications-outline" size={40} color={Colors.border} />
+                <Text style={styles.emptyText}>Sin actividad reciente</Text>
+              </View>
+            }
+            renderItem={({ item }) => <ActivityItem item={item} />}
+          />
+        )
       ) : (
         <View style={{ flex: 1 }}>
           <View style={styles.searchRow}>
@@ -262,24 +439,31 @@ export default function FriendsScreen() {
           />
         </View>
       )}
-    </View>
+
+      <Dialog
+        visible={!!removingFriend}
+        title="Eliminar amigo"
+        message={`¿Quieres eliminar a ${removingFriend?.displayName} de tus amigos?`}
+        onClose={() => setRemovingFriend(null)}
+        buttons={[
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Eliminar', style: 'destructive', onPress: () => removeFriend(removingFriend.id) },
+        ]}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
 
-  tabsRow: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  tab:          { flex: 1, paddingVertical: 14, alignItems: 'center', position: 'relative' },
-  tabActive:    {},
+  tabsScroll: { flexGrow: 0, backgroundColor: Colors.bg },
+  tabsRow:    { flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 10, gap: 6 },
+  tab:          { paddingVertical: 8, paddingHorizontal: 16, alignItems: 'center', borderRadius: 10 },
+  tabActive:    { backgroundColor: Colors.surface, ...Shadow.sm },
   tabText:      { color: Colors.textMuted, fontSize: 13, fontWeight: '500' },
   tabTextActive: { color: Colors.textPrimary, fontWeight: '600' },
-  tabIndicator: { position: 'absolute', bottom: 0, left: 16, right: 16, height: 2, borderRadius: 1 },
+  unreadDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primary },
 
   list: { padding: 16, gap: 8 },
   userRow: {
@@ -291,10 +475,7 @@ const styles = StyleSheet.create({
     padding: 14,
     ...Shadow.sm,
   },
-  avatarImg:  { width: 42, height: 42, borderRadius: 21 },
-  avatar:     { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 17 },
-  userName:   { color: Colors.textPrimary, fontSize: 15, fontWeight: '500' },
+  userName: { color: Colors.textPrimary, fontSize: 15, fontWeight: '500' },
 
   acceptBtn:     { borderRadius: Radius.pill, paddingHorizontal: 14, paddingVertical: 7 },
   acceptBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
@@ -307,6 +488,26 @@ const styles = StyleSheet.create({
   addBtn:    {},
   addBtnGrad: { borderRadius: 18, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   alreadyFriend: { color: Colors.textMuted, fontSize: 13 },
+
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.card,
+    borderRadius: Radius.md,
+    padding: 14,
+    ...Shadow.sm,
+  },
+  activityAvatarWrap: { position: 'relative' },
+  activityEmoji: {
+    position: 'absolute', bottom: -2, right: -4,
+    backgroundColor: Colors.surface,
+    borderRadius: 10, padding: 2,
+    borderWidth: 1, borderColor: Colors.borderLight,
+  },
+  activityText: { color: Colors.textPrimary, fontSize: 13, lineHeight: 18 },
+  activityName: { fontWeight: '700' },
+  activityDate: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
 
   empty:     { alignItems: 'center', marginTop: 50, gap: 10 },
   emptyText: { color: Colors.textMuted, textAlign: 'center', fontSize: 14 },

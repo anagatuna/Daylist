@@ -178,7 +178,8 @@ export default function CreatePostScreen() {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const friends = userDoc.data()?.friends ?? [];
         if (friends.length > 0) {
-          notifyFriends(user.uid, user.displayName, friends).catch(() => {});
+          const filledSlots = Object.keys(songData).filter(k => songData[k]);
+          notifyFriends(user.uid, user.displayName, friends, filledSlots).catch(() => {});
         }
       }
 

@@ -52,9 +52,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
-        headerStyle: { backgroundColor: Colors.surface },
-        headerTintColor: Colors.textPrimary,
-        headerShadowVisible: false,
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="index"

@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LinearGradient } from 'expo-linear-gradient';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
+import Dialog from '@/components/Dialog';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const SLOTS = ['morning', 'afternoon', 'night'];
@@ -31,6 +32,7 @@ export default function UserProfileScreen() {
   const [posts, setPosts] = useState([]);
   const [isFriend, setIsFriend] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showRemove, setShowRemove] = useState(false);
 
   useEffect(() => {
     if (!me) return;
@@ -108,7 +110,7 @@ export default function UserProfileScreen() {
 
             {uid !== me && (
               isFriend ? (
-                <TouchableOpacity style={styles.friendBtnActive} onPress={toggleFriend}>
+                <TouchableOpacity style={styles.friendBtnActive} onPress={() => setShowRemove(true)}>
                   <Ionicons name="person-remove-outline" size={16} color={Colors.textMuted} />
                   <Text style={styles.friendBtnTextActive}>Quitar amigo</Text>
                 </TouchableOpacity>
@@ -133,6 +135,17 @@ export default function UserProfileScreen() {
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>Este usuario no ha publicado nada</Text>}
+      />
+
+      <Dialog
+        visible={showRemove}
+        title="Quitar amigo"
+        message={`¿Quieres quitar a ${profile?.displayName} de tus amigos?`}
+        onClose={() => setShowRemove(false)}
+        buttons={[
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Quitar', style: 'destructive', onPress: toggleFriend },
+        ]}
       />
     </SafeAreaView>
   );
