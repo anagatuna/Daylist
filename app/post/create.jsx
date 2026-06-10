@@ -207,9 +207,9 @@ export default function CreatePostScreen() {
       <View style={styles.container}>
         <View style={styles.searchHeader}>
           <TouchableOpacity onPress={() => { setActiveSlot(null); setResults([]); setSearchQuery(''); }}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.searchTitle}>Buscar canción — {SLOTS.find(s => s.key === activeSlot)?.label}</Text>
+          <Text style={styles.searchTitle}>Buscar canción</Text>
         </View>
 
         <View style={styles.searchRow}>
