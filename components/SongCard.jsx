@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import {
   View, Text, Image, TouchableOpacity, StyleSheet,
-  Modal, ScrollView, ActivityIndicator, Linking,
+  ScrollView, ActivityIndicator, Linking,
   ImageBackground, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AudioPlayer from './AudioPlayer';
+import SheetModal from './SheetModal';
 import { getLyrics } from '@/lib/musixmatch';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 
@@ -101,7 +102,7 @@ export default function SongCard({ song, slot }) {
       </View>
 
       {/* Lyrics modal */}
-      <Modal visible={showLyrics} animationType="slide" presentationStyle="pageSheet">
+      <SheetModal visible={showLyrics} onClose={() => setShowLyrics(false)} fullHeight>
         <View style={styles.modal}>
           <ImageBackground
             source={song.albumImage ? { uri: song.albumImage } : undefined}
@@ -111,7 +112,7 @@ export default function SongCard({ song, slot }) {
               colors={['rgba(242,242,247,0.1)', 'rgba(242,242,247,1)']}
               style={styles.heroGradient}>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setShowLyrics(false)}>
-                <Ionicons name="chevron-down" size={22} color={Colors.textMuted} />
+                <Ionicons name="chevron-down" size={16} color="#fff" />
               </TouchableOpacity>
               <View style={styles.heroRow}>
                 {song.albumImage && <Image source={{ uri: song.albumImage }} style={styles.heroCover} />}
@@ -155,7 +156,7 @@ export default function SongCard({ song, slot }) {
             )}
           </ScrollView>
         </View>
-      </Modal>
+      </SheetModal>
     </View>
   );
 }
@@ -209,8 +210,17 @@ const styles = StyleSheet.create({
   // Modal
   modal: { flex: 1, backgroundColor: Colors.bg },
   modalHero: { width: '100%' },
-  heroGradient: { paddingTop: 52, paddingHorizontal: 20, paddingBottom: 20 },
-  closeBtn: { alignSelf: 'flex-start', padding: 8, marginBottom: 16 },
+  heroGradient: { paddingTop: 20, paddingHorizontal: 20, paddingBottom: 28 },
+  closeBtn: {
+    alignSelf: 'flex-start',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   heroCover: { width: 52, height: 52, borderRadius: Radius.sm },
   heroTitle: { color: Colors.textPrimary, fontSize: 17, fontWeight: '700' },

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  Image, StyleSheet, ActivityIndicator, Alert, ScrollView, Modal,
+  Image, StyleSheet, ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { searchTracks, serializeTrack } from '@/lib/itunes';
 import { notifyFriends } from '@/lib/notifications';
 import { getLyrics } from '@/lib/musixmatch';
 import AudioPlayer from '@/components/AudioPlayer';
+import SheetModal from '@/components/SheetModal';
 import { Colors, Radius } from '@/constants/Theme';
 
 const SLOTS = [
@@ -141,6 +142,7 @@ export default function CreatePostScreen() {
     if (filled.length === 0) return Alert.alert('Agrega al menos una canción');
 
     const user = auth.currentUser;
+    if (!user) return;
     const today = new Date().toISOString().slice(0, 10);
 
     // Check if user already posted today
@@ -337,12 +339,12 @@ export default function CreatePostScreen() {
       </View>
 
       {/* Phrase modal */}
-      <Modal visible={!!phraseModal} animationType="slide" presentationStyle="pageSheet">
+      <SheetModal visible={!!phraseModal} onClose={() => setPhraseModal(null)}>
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Agregar frase</Text>
             <TouchableOpacity onPress={() => setPhraseModal(null)}>
-              <Ionicons name="close" size={24} color="#fff" />
+              <Ionicons name="close" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
           </View>
           <TextInput
@@ -361,10 +363,10 @@ export default function CreatePostScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </Modal>
+      </SheetModal>
 
       {/* Lyric picker modal */}
-      <Modal visible={!!lyricModal} animationType="slide" presentationStyle="pageSheet">
+      <SheetModal visible={!!lyricModal} onClose={() => setLyricModal(null)} fullHeight>
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <View>
@@ -418,7 +420,7 @@ export default function CreatePostScreen() {
             </View>
           )}
         </View>
-      </Modal>
+      </SheetModal>
     </View>
   );
 }
@@ -429,7 +431,7 @@ const styles = StyleSheet.create({
   title: { color: Colors.textPrimary, fontSize: 22, fontWeight: '700', marginBottom: 24 },
   slotSection: { marginBottom: 20 },
   slotLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 16, borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)', borderStyle: 'dashed' },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.card, borderRadius: Radius.md, padding: 16, borderWidth: 1, borderColor: 'rgba(192,132,252,0.4)' },
   addBtnText: { color: Colors.primary, fontSize: 15 },
   selectedCard: { backgroundColor: Colors.card, borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: Colors.border },
   selectedRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
@@ -453,7 +455,7 @@ const styles = StyleSheet.create({
   resultName: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
   resultArtist: { color: Colors.primary, fontSize: 12 },
   resultAlbum: { color: Colors.textMuted, fontSize: 11 },
-  modal: { flex: 1, backgroundColor: Colors.bg, padding: 20, paddingTop: 50 },
+  modal: { flex: 1, backgroundColor: Colors.bg, padding: 20, paddingTop: 24, paddingBottom: 32 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
   modalSub: { color: Colors.textSecondary, fontSize: 14, marginBottom: 20 },

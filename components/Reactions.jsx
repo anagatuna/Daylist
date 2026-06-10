@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, ActivityIndicator } from 'react-native';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { notifyReaction } from '@/lib/notifications';
@@ -27,26 +27,28 @@ export default function Reactions({ postId, reactions = {}, postOwnerUid }) {
     if (!user) return;
     setShowPicker(false);
 
-    const postRef = doc(db, 'posts', postId);
-    const snap = await getDoc(postRef);
-    const current = snap.data()?.reactions ?? {};
-
-    const updated = {};
-    for (const [e, users] of Object.entries(current)) {
-      updated[e] = (users ?? []).filter(u => u !== user.uid);
-    }
-
     const isNewReaction = emoji !== myEmoji;
+    const postRef = doc(db, 'posts', postId);
+    const patch = {};
+
+    // Remove from previous emoji if switching
+    if (myEmoji) {
+      patch[`reactions.${myEmoji}`] = arrayRemove(user.uid);
+    }
+    // Add to new emoji (toggle off if same)
     if (isNewReaction) {
-      updated[emoji] = [...(updated[emoji] ?? []), user.uid];
+      patch[`reactions.${emoji}`] = arrayUnion(user.uid);
     }
 
-    for (const e of Object.keys(updated)) {
-      if (updated[e].length === 0) delete updated[e];
-    }
+    // Optimistic update
+    setLocalReactions(prev => {
+      const next = { ...prev };
+      if (myEmoji) next[myEmoji] = (next[myEmoji] ?? []).filter(u => u !== user.uid);
+      if (isNewReaction) next[emoji] = [...(next[emoji] ?? []), user.uid];
+      return next;
+    });
 
-    setLocalReactions(updated);
-    await updateDoc(postRef, { reactions: updated });
+    await updateDoc(postRef, patch);
 
     if (isNewReaction && postOwnerUid && postOwnerUid !== user.uid) {
       notifyReaction(postOwnerUid, user.displayName, emoji).catch(() => {});

@@ -126,12 +126,13 @@ export default function FriendsScreen() {
       if (friendIds.length > 0) {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
         const fPostsSnap = await getDocs(query(
           collection(db, 'posts'),
           where('uid', 'in', friendIds.slice(0, 10)),
           orderBy('createdAt', 'desc')
         ));
-        fPostsSnap.docs.forEach(d => {
+        fPostsSnap.docs.filter(d => d.data().date >= sevenDaysAgoStr).forEach(d => {
           const p = { id: d.id, ...d.data() };
           const slots = Object.keys(p.songs ?? {}).filter(k => p.songs[k]);
           items.push({
