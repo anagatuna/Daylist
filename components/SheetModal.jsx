@@ -32,7 +32,6 @@ export default function SheetModal({ visible, onClose, children, fullHeight = fa
       <View style={styles.root}>
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <View style={[styles.sheet, fullHeight && styles.sheetFull]}>
-          <View style={styles.handle} />
           {children}
         </View>
       </View>

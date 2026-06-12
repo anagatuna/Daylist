@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Daylist",
-    "slug": "Daylist",
+    "slug": "daylist",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -17,6 +17,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.daylist.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#B48DE0"
@@ -38,6 +40,16 @@
         {
           "icon": "./assets/images/icon.png",
           "color": "#9B6DD6"
+        }
+      ],
+      "expo-asset",
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "-keep class expo.modules.kotlin.types.** { *; }\n-keep class expo.modules.** { *; }"
+          }
         }
       ]
     ],
