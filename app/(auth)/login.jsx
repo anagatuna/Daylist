@@ -79,7 +79,7 @@ export default function LoginScreen() {
 
       <KeyboardAvoidingView
         style={styles.inner}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
         {/* Logo */}
         <Animated.View style={[styles.logoContainer, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>

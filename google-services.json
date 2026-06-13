@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "257323551486",
+    "project_id": "daylist-7acd4",
+    "storage_bucket": "daylist-7acd4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:257323551486:android:222893d6de2297822b73af",
+        "android_client_info": {
+          "package_name": "com.daylist.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaeoyyV7pJ9d_49-aHjfExemwBqfa4IrM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
