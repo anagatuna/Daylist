@@ -24,10 +24,14 @@ export default function RootLayout() {
   const segments = useSegments();
   const notificationListener = useRef(null);
   const responseListener = useRef(null);
+  const splashHidden = useRef(false);
 
   useEffect(() => {
     if (loading) return;
-    SplashScreen.hideAsync();
+    if (!splashHidden.current) {
+      splashHidden.current = true;
+      SplashScreen.hideAsync().catch(() => {});
+    }
 
     const inAuth = segments[0] === '(auth)';
     if (!user && !inAuth) {

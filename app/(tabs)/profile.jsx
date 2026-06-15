@@ -8,13 +8,17 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import AvatarPreview from '@/components/AvatarPreview';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
 import Dialog from '@/components/Dialog';
+import ReminderModal, { REMINDER_KEY, formatReminderTime } from '@/components/ReminderModal';
+import StatsCard from '@/components/StatsCard';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const SLOTS = ['morning', 'afternoon', 'night'];
@@ -36,10 +40,18 @@ export default function ProfileScreen() {
   const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLogout, setShowLogout] = useState(false);
+  const [showReminder, setShowReminder] = useState(false);
+  const [reminderTime, setReminderTime] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
       if (user) load();
+      AsyncStorage.getItem(REMINDER_KEY).then(stored => {
+        if (stored) {
+          const { enabled, hour, minute } = JSON.parse(stored);
+          setReminderTime(enabled ? formatReminderTime(hour, minute) : null);
+        }
+      });
     }, [user])
   );
 
@@ -84,18 +96,17 @@ export default function ProfileScreen() {
                 style={StyleSheet.absoluteFill}
               />
 
-              <TouchableOpacity style={styles.editBtn} onPress={() => router.push('/edit-profile')}>
-                <Ionicons name="pencil-outline" size={15} color={Colors.primary} />
-                <Text style={styles.editBtnText}>Editar</Text>
-              </TouchableOpacity>
+              <View style={styles.topBtns}>
+                <TouchableOpacity style={styles.editBtn} onPress={() => router.push('/edit-profile')}>
+                  <Ionicons name="pencil-outline" size={15} color={Colors.primary} />
+                  <Text style={styles.editBtnText}>Editar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.bellBtn} onPress={() => setShowReminder(true)}>
+                  <Ionicons name={reminderTime ? 'notifications' : 'notifications-outline'} size={18} color={reminderTime ? Colors.primary : Colors.textMuted} />
+                </TouchableOpacity>
+              </View>
 
-              {avatar ? (
-                <Image source={{ uri: avatar }} style={styles.avatarImg} />
-              ) : (
-                <LinearGradient colors={Colors.gradientPrimary} style={styles.avatarLarge} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                  <Text style={styles.avatarText}>{user.displayName?.[0]?.toUpperCase()}</Text>
-                </LinearGradient>
-              )}
+              <AvatarPreview uri={avatar} size={72} initial={user.displayName?.[0]} style={styles.avatarImg} />
 
               <Text style={styles.displayName}>{user.displayName}</Text>
               <Text style={styles.email}>{user.email}</Text>
@@ -120,6 +131,7 @@ export default function ProfileScreen() {
             </View>
             </View>
 
+            {!loading && posts.length > 0 && <StatsCard posts={posts} />}
             <Text style={styles.sectionTitle}>HISTORIAL</Text>
             {loading && <ActivityIndicator color={Colors.primary} style={{ marginTop: 20 }} />}
           </View>
@@ -153,6 +165,18 @@ export default function ProfileScreen() {
           { text: 'Salir', style: 'destructive', onPress: () => signOut(auth) },
         ]}
       />
+      <ReminderModal
+        visible={showReminder}
+        onClose={() => {
+          setShowReminder(false);
+          AsyncStorage.getItem(REMINDER_KEY).then(stored => {
+            if (stored) {
+              const { enabled, hour, minute } = JSON.parse(stored);
+              setReminderTime(enabled ? formatReminderTime(hour, minute) : null);
+            }
+          });
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -162,7 +186,7 @@ const styles = StyleSheet.create({
 
   heroShadow: {
     marginHorizontal: -16,
-    marginBottom: 0,
+    marginBottom: 28,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
     backgroundColor: Colors.surface,
@@ -178,12 +202,11 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
+  topBtns: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-end', marginBottom: 16 },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    alignSelf: 'flex-end',
-    marginBottom: 16,
     backgroundColor: 'rgba(155,109,214,0.10)',
     borderRadius: Radius.pill,
     paddingHorizontal: 14,
@@ -192,6 +215,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(155,109,214,0.25)',
   },
   editBtnText: { color: Colors.primary, fontSize: 12, fontWeight: '600' },
+  bellBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(155,109,214,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(155,109,214,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   avatarImg:   { width: 72, height: 72, borderRadius: 36, marginBottom: 12, ...Shadow.md },
   avatarLarge: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 12, ...Shadow.md },

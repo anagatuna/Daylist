@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image, StatusBar } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -10,6 +10,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
 import Dialog from '@/components/Dialog';
+import AvatarPreview from '@/components/AvatarPreview';
+import StatsCard from '@/components/StatsCard';
+
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const SLOTS = ['morning', 'afternoon', 'night'];
@@ -83,48 +86,46 @@ export default function UserProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" />
       <FlatList
         data={posts}
         keyExtractor={p => p.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <View style={styles.headerShadow}>
-          <View style={styles.header}>
-            <LinearGradient
-              colors={['rgba(180,141,224,0.18)', 'rgba(218,143,189,0.08)', 'transparent']}
-              style={StyleSheet.absoluteFill}
-            />
-            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-              <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
-            </TouchableOpacity>
-            {profile?.avatar ? (
-              <Image source={{ uri: profile.avatar }} style={styles.avatarImg} />
-            ) : (
-              <LinearGradient colors={Colors.gradientPrimary} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Text style={styles.avatarText}>{profile?.displayName?.[0]?.toUpperCase()}</Text>
-              </LinearGradient>
-            )}
-            <Text style={styles.name}>{profile?.displayName}</Text>
-            {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
-            <Text style={styles.postCount}>{posts.length} días publicados</Text>
+          <View>
+            <View style={styles.headerShadow}>
+            <View style={styles.header}>
+              <LinearGradient
+                colors={['rgba(180,141,224,0.18)', 'rgba(218,143,189,0.08)', 'transparent']}
+                style={StyleSheet.absoluteFill}
+              />
+              <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+                <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
+              </TouchableOpacity>
+              <AvatarPreview uri={profile?.avatar} size={84} initial={profile?.displayName?.[0]} style={styles.avatarImg} />
+              <Text style={styles.name}>{profile?.displayName}</Text>
+              {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+              <Text style={styles.postCount}>{posts.length} días publicados</Text>
 
-            {uid !== me && (
-              isFriend ? (
-                <TouchableOpacity style={styles.friendBtnActive} onPress={() => setShowRemove(true)}>
-                  <Ionicons name="person-remove-outline" size={16} color={Colors.textMuted} />
-                  <Text style={styles.friendBtnTextActive}>Quitar amigo</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity onPress={toggleFriend} activeOpacity={0.85}>
-                  <LinearGradient colors={Colors.gradientPrimary} style={styles.friendBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                    <Ionicons name="person-add-outline" size={16} color="#fff" />
-                    <Text style={styles.friendBtnText}>Agregar amigo</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )
-            )}
-          </View>
+              {uid !== me && (
+                isFriend ? (
+                  <TouchableOpacity style={styles.friendBtnActive} onPress={() => setShowRemove(true)}>
+                    <Ionicons name="person-remove-outline" size={16} color={Colors.textMuted} />
+                    <Text style={styles.friendBtnTextActive}>Quitar amigo</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={toggleFriend} activeOpacity={0.85}>
+                    <LinearGradient colors={Colors.gradientPrimary} style={styles.friendBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                      <Ionicons name="person-add-outline" size={16} color="#fff" />
+                      <Text style={styles.friendBtnText}>Agregar amigo</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
+            </View>
+            <StatsCard posts={posts} marginBottom={28} />
           </View>
         }
         renderItem={({ item }) => (

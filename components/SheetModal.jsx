@@ -1,4 +1,4 @@
-import { Modal, View, StyleSheet, Platform, Pressable } from 'react-native';
+import { Modal, View, StyleSheet, Platform, Pressable, KeyboardAvoidingView } from 'react-native';
 import { Colors } from '@/constants/Theme';
 
 /**
@@ -29,12 +29,12 @@ export default function SheetModal({ visible, onClose, children, fullHeight = fa
       transparent
       statusBarTranslucent
       onRequestClose={onClose}>
-      <View style={styles.root}>
+      <KeyboardAvoidingView style={styles.root} behavior="height">
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <View style={[styles.sheet, fullHeight && styles.sheetFull]}>
           {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

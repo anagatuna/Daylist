@@ -12,6 +12,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, update
 import { auth, db } from '@/lib/firebase';
 import { searchTracks, serializeTrack } from '@/lib/itunes';
 import { notifyFriends } from '@/lib/notifications';
+import { localDateStr } from '@/lib/date';
 import { getLyrics } from '@/lib/musixmatch';
 import AudioPlayer from '@/components/AudioPlayer';
 import SheetModal from '@/components/SheetModal';
@@ -37,12 +38,21 @@ export default function CreatePostScreen() {
   const [lyricLines, setLyricLines] = useState([]);
   const [loadingLyrics, setLoadingLyrics] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [alreadyPosted, setAlreadyPosted] = useState(false);
+  const [canEdit, setCanEdit] = useState(new Date().getHours() < 23);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCanEdit(new Date().getHours() < 23);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
   // Cargar post de hoy si ya existe
   useEffect(() => {
     async function loadToday() {
       const user = auth.currentUser;
       if (!user) return;
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateStr();
       const q = query(
         collection(db, 'posts'),
         where('uid', '==', user.uid),
@@ -51,11 +61,15 @@ export default function CreatePostScreen() {
       const snap = await getDocs(q);
       if (!snap.empty) {
         const data = snap.docs[0].data();
-        setSongs({
+        const loaded = {
           morning: data.songs?.morning ?? null,
           afternoon: data.songs?.afternoon ?? null,
           night: data.songs?.night ?? null,
-        });
+        };
+        setSongs(loaded);
+        if (loaded.morning && loaded.afternoon && loaded.night) {
+          setAlreadyPosted(true);
+        }
       }
     }
     loadToday();
@@ -143,7 +157,7 @@ export default function CreatePostScreen() {
 
     const user = auth.currentUser;
     if (!user) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr();
 
     // Check if user already posted today
     const q = query(
@@ -196,12 +210,30 @@ export default function CreatePostScreen() {
         await AsyncStorage.setItem(notifKey, JSON.stringify(updated));
       }
 
+      if (songData.morning && songData.afternoon && songData.night) {
+        setAlreadyPosted(true);
+      }
       router.replace('/(tabs)');
     } catch (e) {
       Alert.alert('Error publicando', e.message);
     } finally {
       setSaving(false);
     }
+  }
+
+  if (alreadyPosted && !canEdit) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', gap: 12, padding: 32 }]}>
+        <Ionicons name="checkmark-circle" size={64} color={Colors.primary} />
+        <Text style={[styles.title, { textAlign: 'center', marginBottom: 0 }]}>¡Ya completaste tu Daylist de hoy!</Text>
+        <Text style={{ color: Colors.textSecondary, fontSize: 15, textAlign: 'center' }}>Vuelve mañana para agregar nuevas canciones.</Text>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ marginTop: 16 }}>
+          <LinearGradient colors={Colors.gradientPrimary} style={[styles.publishBtn, { paddingHorizontal: 32 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            <Text style={styles.publishBtnText}>Volver al inicio</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   if (activeSlot) {
@@ -268,6 +300,12 @@ export default function CreatePostScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
+        {alreadyPosted && canEdit && (
+          <View style={styles.editBanner}>
+            <Ionicons name="create-outline" size={15} color={Colors.primary} />
+            <Text style={styles.editBannerText}>Editando tu Daylist de hoy · hasta las 11pm</Text>
+          </View>
+        )}
         <Text style={styles.title}>¿Qué canciones definen tu día?</Text>
 
         {SLOTS.map(({ key, label }) => (
@@ -333,7 +371,7 @@ export default function CreatePostScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity onPress={publish} disabled={saving} activeOpacity={0.85}>
           <LinearGradient colors={Colors.gradientPrimary} style={styles.publishBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishBtnText}>Publicar</Text>}
+            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishBtnText}>{alreadyPosted ? 'Guardar cambios' : 'Publicar'}</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -427,6 +465,8 @@ export default function CreatePostScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
+  editBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(155,109,214,0.1)', borderRadius: Radius.md, padding: 10, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(155,109,214,0.25)' },
+  editBannerText: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
   scroll: { padding: 20, paddingBottom: 110 },
   title: { color: Colors.textPrimary, fontSize: 22, fontWeight: '700', marginBottom: 24 },
   slotSection: { marginBottom: 20 },
