@@ -19,12 +19,19 @@
     "android": {
       "package": "com.daylist.app",
       "googleServicesFile": "./google-services.json",
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#B48DE0"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -60,6 +67,12 @@
       "eas": {
         "projectId": "adfaca39-4d08-4df4-b1b2-230ca8d370d7"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/adfaca39-4d08-4df4-b1b2-230ca8d370d7"
     }
   }
 }

@@ -39,7 +39,6 @@ export default function EditProfileScreen() {
       Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería');
       return;
     }
-
     setUploading(true);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -83,7 +82,6 @@ export default function EditProfileScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-          {/* Avatar */}
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickImage} disabled={uploading} activeOpacity={0.85}>
               {avatar ? (
@@ -102,7 +100,6 @@ export default function EditProfileScreen() {
             <Text style={styles.changePhotoText}>Cambiar foto de perfil</Text>
           </View>
 
-          {/* Nombre */}
           <View style={styles.field}>
             <Text style={styles.label}>NOMBRE DE USUARIO</Text>
             <TextInput
@@ -114,7 +111,6 @@ export default function EditProfileScreen() {
             />
           </View>
 
-          {/* Bio */}
           <View style={styles.field}>
             <Text style={styles.label}>DESCRIPCIÓN</Text>
             <TextInput

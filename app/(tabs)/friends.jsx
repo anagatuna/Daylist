@@ -13,6 +13,7 @@ import {
   updateDoc, arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { localDateStr } from '@/lib/date';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { notifyFriendRequest } from '@/lib/notifications';
@@ -126,7 +127,7 @@ export default function FriendsScreen() {
       if (friendIds.length > 0) {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
+        const sevenDaysAgoStr = localDateStr(sevenDaysAgo);
         const fPostsSnap = await getDocs(query(
           collection(db, 'posts'),
           where('uid', 'in', friendIds.slice(0, 10)),
@@ -271,8 +272,8 @@ export default function FriendsScreen() {
   function formatDate(isoDate) {
     if (!isoDate) return '';
     const d = new Date(isoDate + 'T12:00:00');
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = localDateStr();
+    const yesterday = localDateStr(new Date(Date.now() - 86400000));
     if (isoDate === today) return 'Hoy';
     if (isoDate === yesterday) return 'Ayer';
     return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });

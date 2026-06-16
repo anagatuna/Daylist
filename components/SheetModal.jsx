@@ -1,4 +1,5 @@
-import { Modal, View, StyleSheet, Platform, Pressable } from 'react-native';
+import { Modal, View, StyleSheet, Platform, Pressable, KeyboardAvoidingView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Theme';
 
 /**
@@ -23,18 +24,33 @@ export default function SheetModal({ visible, onClose, children, fullHeight = fa
   }
 
   return (
+    <AndroidSheet visible={visible} onClose={onClose} fullHeight={fullHeight}>
+      {children}
+    </AndroidSheet>
+  );
+}
+
+function AndroidSheet({ visible, onClose, children, fullHeight }) {
+  const insets = useSafeAreaInsets();
+
+  return (
     <Modal
       visible={visible}
       animationType="slide"
       transparent
       statusBarTranslucent
       onRequestClose={onClose}>
-      <View style={styles.root}>
+      <KeyboardAvoidingView style={styles.root} behavior="padding">
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <View style={[styles.sheet, fullHeight && styles.sheetFull]}>
+        <View style={[
+          styles.sheet,
+          fullHeight && styles.sheetFull,
+          { paddingBottom: insets.bottom || 16 },
+        ]}>
+          <View style={styles.handle} />
           {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -43,14 +59,13 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
     backgroundColor: Colors.bg,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     maxHeight: '92%',
-    overflow: 'hidden',
     paddingTop: 8,
   },
   sheetFull: {
@@ -60,8 +75,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(60,60,67,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignSelf: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
 });

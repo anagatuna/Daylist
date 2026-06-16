@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { localDateStr } from '@/lib/date';
 import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
@@ -36,7 +37,7 @@ function formatDate(isoDate) {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateStr();
   const { dayName, dayNum, month } = formatDate(today);
 
   const [myPost, setMyPost]       = useState(null);

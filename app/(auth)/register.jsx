@@ -7,7 +7,7 @@ import {
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import Dialog from '@/components/Dialog';
@@ -49,15 +49,28 @@ export default function RegisterScreen() {
   }
 
   async function handleRegister() {
-    if (!name || !email || !password) return showError('Completa todos los campos');
-    if (password.length < 6) return showError('La contraseña debe tener al menos 6 caracteres');
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName || !trimmedEmail || !password) return showError('Completa todos los campos');
+    if (trimmedName.length < 3) return showError('El nombre de usuario debe tener al menos 3 caracteres.');
+    if (trimmedName.length > 20) return showError('El nombre de usuario no puede tener más de 20 caracteres.');
+    if (!/^[a-zA-Z0-9_.]+$/.test(trimmedName)) return showError('El nombre de usuario solo puede contener letras, números, puntos y guiones bajos.');
+    if (password.length < 6) return showError('La contraseña debe tener al menos 6 caracteres.');
+
     setLoading(true);
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      await updateProfile(user, { displayName: name.trim() });
+      const existing = await getDocs(query(collection(db, 'users'), where('displayName', '==', trimmedName)));
+      if (!existing.empty) {
+        setLoading(false);
+        return showError('Ese nombre de usuario ya está en uso. Elige otro.');
+      }
+
+      const { user } = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+      await updateProfile(user, { displayName: trimmedName });
       await setDoc(doc(db, 'users', user.uid), {
-        displayName: name.trim(),
-        email: email.trim(),
+        displayName: trimmedName,
+        email: trimmedEmail,
         avatar: null,
         bio: '',
         createdAt: serverTimestamp(),
