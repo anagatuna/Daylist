@@ -45,9 +45,11 @@ function AndroidSheet({ visible, onClose, children, fullHeight }) {
         <View style={[
           styles.sheet,
           fullHeight && styles.sheetFull,
-          { paddingBottom: insets.bottom || 16 },
+          fullHeight
+            ? { paddingTop: 0, paddingBottom: insets.bottom || 16 }
+            : { paddingTop: 8, paddingBottom: insets.bottom || 16 },
         ]}>
-          <View style={styles.handle} />
+          {!fullHeight && <View style={styles.handle} />}
           {children}
         </View>
       </KeyboardAvoidingView>
