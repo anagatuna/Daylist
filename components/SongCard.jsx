@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   // Modal
   modal: { flex: 1, backgroundColor: Colors.bg },
   modalHero: { width: '100%' },
-  heroGradient: { paddingTop: 20, paddingHorizontal: 20, paddingBottom: 28 },
+  heroGradient: { paddingTop: Platform.OS === 'android' ? 44 : 20, paddingHorizontal: 20, paddingBottom: 28 },
   closeBtn: {
     alignSelf: 'flex-start',
     width: 28,
