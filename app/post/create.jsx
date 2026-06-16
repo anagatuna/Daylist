@@ -405,7 +405,7 @@ export default function CreatePostScreen() {
 
       {/* Lyric picker modal */}
       <SheetModal visible={!!lyricModal} onClose={() => setLyricModal(null)} fullHeight>
-        <View style={styles.modal}>
+        <View style={[styles.modal, styles.modalFull]}>
           <View style={styles.modalHeader}>
             <View>
               <Text style={styles.modalTitle}>Elige una línea</Text>
@@ -495,7 +495,8 @@ const styles = StyleSheet.create({
   resultName: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
   resultArtist: { color: Colors.primary, fontSize: 12 },
   resultAlbum: { color: Colors.textMuted, fontSize: 11 },
-  modal: { flex: 1, backgroundColor: Colors.bg, padding: 20, paddingTop: 24, paddingBottom: 32 },
+  modal: { backgroundColor: Colors.bg, padding: 20, paddingTop: 24, paddingBottom: 32 },
+  modalFull: { flex: 1 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
   modalSub: { color: Colors.textSecondary, fontSize: 14, marginBottom: 20 },
