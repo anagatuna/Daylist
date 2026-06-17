@@ -7,7 +7,7 @@ import {
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import Dialog from '@/components/Dialog';
@@ -60,12 +60,6 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const existing = await getDocs(query(collection(db, 'users'), where('displayName', '==', trimmedName)));
-      if (!existing.empty) {
-        setLoading(false);
-        return showError('Ese nombre de usuario ya está en uso. Elige otro.');
-      }
-
       const { user } = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
       await updateProfile(user, { displayName: trimmedName });
       await setDoc(doc(db, 'users', user.uid), {
