@@ -18,7 +18,9 @@ export default function SheetModal({ visible, onClose, children, fullHeight = fa
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={onClose}>
-        {children}
+        <View style={{ flex: 1, backgroundColor: Colors.bg }}>
+          {children}
+        </View>
       </Modal>
     );
   }
@@ -40,19 +42,21 @@ function AndroidSheet({ visible, onClose, children, fullHeight }) {
       transparent
       statusBarTranslucent
       onRequestClose={onClose}>
-      <KeyboardAvoidingView style={styles.root} behavior="padding">
+      <View style={styles.root}>
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <View style={[
-          styles.sheet,
-          fullHeight && styles.sheetFull,
-          fullHeight
-            ? { paddingTop: 0, paddingBottom: insets.bottom || 16 }
-            : { paddingTop: 8, paddingBottom: insets.bottom || 16 },
-        ]}>
-          {!fullHeight && <View style={styles.handle} />}
-          {children}
-        </View>
-      </KeyboardAvoidingView>
+        <KeyboardAvoidingView behavior="padding">
+          <View style={[
+            styles.sheet,
+            fullHeight && styles.sheetFull,
+            fullHeight
+              ? { paddingTop: 0, paddingBottom: insets.bottom || 16 }
+              : { paddingTop: 8, paddingBottom: insets.bottom || 16 },
+          ]}>
+            {!fullHeight && <View style={styles.handle} />}
+            {children}
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -77,7 +81,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(60,60,67,0.2)',
     alignSelf: 'center',
     marginBottom: 8,
   },

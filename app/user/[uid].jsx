@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, 
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc, arrayUnion, arrayRemove, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { LinearGradient } from 'expo-linear-gradient';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
+import CommentsSheet from '@/components/CommentsSheet';
 import Dialog from '@/components/Dialog';
 import AvatarPreview from '@/components/AvatarPreview';
 import StatsCard from '@/components/StatsCard';
@@ -33,6 +34,8 @@ export default function UserProfileScreen() {
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [commentCounts, setCommentCounts] = useState({});
+  const [activeComments, setActiveComments] = useState(null);
   const [isFriend, setIsFriend] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showRemove, setShowRemove] = useState(false);
@@ -55,7 +58,16 @@ export default function UserProfileScreen() {
       ]);
       setProfile({ id: uid, ...userDoc.data() });
       setIsFriend((myDoc.data()?.friends ?? []).includes(uid));
-      setPosts(postsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const loadedPosts = postsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setPosts(loadedPosts);
+      const counts = {};
+      await Promise.all(loadedPosts.map(async p => {
+        try {
+          const snap = await getCountFromServer(collection(db, 'posts', p.id, 'comments'));
+          counts[p.id] = snap.data().count;
+        } catch { counts[p.id] = 0; }
+      }));
+      setCommentCounts(counts);
     } catch (e) {
       Alert.alert('Error cargando perfil', e.message);
     } finally {
@@ -134,12 +146,24 @@ export default function UserProfileScreen() {
             {SLOTS.map(slot =>
               item.songs?.[slot] ? <SongCard key={slot} song={item.songs[slot]} slot={slot} /> : null
             )}
-            <Reactions postId={item.id} reactions={item.reactions ?? {}} postOwnerUid={uid} />
+            <Reactions
+              postId={item.id}
+              reactions={item.reactions ?? {}}
+              postOwnerUid={uid}
+              commentCount={commentCounts[item.id] ?? 0}
+              onComment={() => setActiveComments({ postId: item.id, postOwnerUid: uid })}
+            />
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>Este usuario no ha publicado nada</Text>}
       />
 
+      <CommentsSheet
+        visible={!!activeComments}
+        onClose={() => setActiveComments(null)}
+        postId={activeComments?.postId}
+        postOwnerUid={activeComments?.postOwnerUid}
+      />
       <Dialog
         visible={showRemove}
         title="Quitar amigo"
