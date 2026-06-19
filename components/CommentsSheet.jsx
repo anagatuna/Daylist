@@ -5,7 +5,7 @@ import {
   Image, Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Modal, Pressable } from 'react-native';
+import { Modal } from 'react-native';
 import {
   collection, addDoc, query, orderBy, onSnapshot,
   serverTimestamp, doc, deleteDoc, getDoc,
@@ -153,8 +153,9 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid }
 
   const content = (
     <View style={[
-      Platform.OS === 'ios' ? styles.sheetIOS : styles.sheet,
-      { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : (insets.bottom || 12) },
+      styles.sheetIOS,
+      Platform.OS === 'android' && { paddingTop: insets.top },
+      { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : (insets.bottom + 16 || 24) },
     ]}>
       {/* Header */}
       <View style={styles.sheetHeader}>
@@ -223,31 +224,15 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid }
     </View>
   );
 
-  if (Platform.OS === 'ios') {
-    return (
-      <Modal
-        visible={visible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={onClose}
-      >
-          {content}
-      </Modal>
-    );
-  }
-
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      transparent
-      statusBarTranslucent
+      presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}
+      statusBarTranslucent={Platform.OS === 'android'}
       onRequestClose={onClose}
     >
-      <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        {content}
-      </View>
+      {content}
     </Modal>
   );
 }
@@ -264,21 +249,9 @@ function formatTime(ts) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
   sheetIOS: {
     flex: 1,
     backgroundColor: Colors.bg,
-  },
-  sheet: {
-    backgroundColor: Colors.bg,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '90%',
-    minHeight: 300,
   },
   sheetHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
