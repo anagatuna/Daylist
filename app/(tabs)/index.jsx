@@ -7,13 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { localDateStr } from '@/lib/date';
 import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
+import CommentsSheet from '@/components/CommentsSheet';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const SLOTS_META = [
@@ -44,6 +45,8 @@ export default function HomeScreen() {
   const [friendPosts, setFriendPosts] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [commentCounts, setCommentCounts] = useState({}); // postId -> count
+  const [activeComments, setActiveComments] = useState(null); // { postId, postOwnerUid }
 
   async function loadData() {
     if (!user) return;
@@ -75,6 +78,16 @@ export default function HomeScreen() {
         return { ...p, avatar: uSnap.data()?.avatar ?? null };
       }));
       setFriendPosts(enriched);
+
+      // Cargar conteo de comentarios
+      const counts = {};
+      await Promise.all(enriched.map(async p => {
+        try {
+          const snap = await getCountFromServer(collection(db, 'posts', p.id, 'comments'));
+          counts[p.id] = snap.data().count;
+        } catch { counts[p.id] = 0; }
+      }));
+      setCommentCounts(counts);
     } else {
       setFriendPosts([]);
     }
@@ -193,11 +206,24 @@ export default function HomeScreen() {
                 {SLOTS_META.map(({ key }) =>
                   post.songs?.[key] ? <SongCard key={key} song={post.songs[key]} slot={key} /> : null
                 )}
-                <Reactions postId={post.id} reactions={post.reactions ?? {}} postOwnerUid={post.uid} />
+                <Reactions
+                  postId={post.id}
+                  reactions={post.reactions ?? {}}
+                  postOwnerUid={post.uid}
+                  commentCount={commentCounts[post.id] ?? 0}
+                  onComment={() => setActiveComments({ postId: post.id, postOwnerUid: post.uid })}
+                />
               </View>
             ))}
           </View>
         )}
+
+        <CommentsSheet
+          visible={!!activeComments}
+          onClose={() => setActiveComments(null)}
+          postId={activeComments?.postId}
+          postOwnerUid={activeComments?.postOwnerUid}
+        />
 
         {!loading && friendPosts.length === 0 && filled > 0 && (
           <View style={styles.emptyFriends}>
@@ -249,4 +275,5 @@ const styles = StyleSheet.create({
 
   emptyFriends:     { alignItems: 'center', marginTop: 40, paddingHorizontal: 20 },
   emptyFriendsText: { color: Colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20 },
+
 });

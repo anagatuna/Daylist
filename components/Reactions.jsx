@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,7 +9,7 @@ import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const EMOJIS = ['🔥', '💜', '😭', '🎵', '✨', '💀'];
 
-export default function Reactions({ postId, reactions = {}, postOwnerUid }) {
+export default function Reactions({ postId, reactions = {}, postOwnerUid, commentCount = 0, onComment }) {
   const { user } = useAuth();
   const [localReactions, setLocalReactions] = useState(reactions);
   const [showPicker, setShowPicker] = useState(false);
@@ -92,6 +93,15 @@ export default function Reactions({ postId, reactions = {}, postOwnerUid }) {
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowPicker(true)}>
           <Text style={styles.addBtnText}>{myEmoji ? '•••' : '+'}</Text>
         </TouchableOpacity>
+
+        {onComment && (
+          <TouchableOpacity style={styles.commentPill} onPress={onComment}>
+            <Ionicons name="chatbubble-outline" size={15} color={Colors.primary} />
+            {commentCount > 0 && (
+              <Text style={styles.commentPillCount}>{commentCount}</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Tooltip */}
@@ -150,13 +160,13 @@ const styles = StyleSheet.create({
   pillCount:       { color: Colors.textMuted, fontSize: 12, fontWeight: '600' },
   pillCountActive: { color: Colors.primary },
   addBtn: {
-    backgroundColor: Colors.bg,
+    backgroundColor: 'rgba(155,109,214,0.08)',
     borderRadius: Radius.pill,
     width: 30, height: 30,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
+    borderWidth: 1, borderColor: 'rgba(155,109,214,0.25)',
   },
-  addBtnText: { color: Colors.textMuted, fontSize: 13, fontWeight: '600' },
+  addBtnText: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
 
   backdrop: { flex: 1, backgroundColor: 'rgba(28,28,30,0.4)', justifyContent: 'center', alignItems: 'center' },
 
@@ -191,4 +201,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(155,109,214,0.4)',
   },
   emojiText: { fontSize: 22 },
+
+  commentPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(155,109,214,0.08)',
+    borderRadius: Radius.pill,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: 'rgba(155,109,214,0.25)',
+  },
+  commentPillCount: { color: Colors.primary, fontSize: 12, fontWeight: '600' },
 });

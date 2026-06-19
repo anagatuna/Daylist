@@ -10,12 +10,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signOut } from 'firebase/auth';
-import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc, getCountFromServer } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import AvatarPreview from '@/components/AvatarPreview';
 import SongCard from '@/components/SongCard';
 import Reactions from '@/components/Reactions';
+import CommentsSheet from '@/components/CommentsSheet';
 import Dialog from '@/components/Dialog';
 import ReminderModal, { REMINDER_KEY, formatReminderTime } from '@/components/ReminderModal';
 import StatsCard from '@/components/StatsCard';
@@ -35,6 +36,8 @@ export default function ProfileScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [posts, setPosts] = useState([]);
+  const [commentCounts, setCommentCounts] = useState({});
+  const [activeComments, setActiveComments] = useState(null);
   const [friendCount, setFriendCount] = useState(0);
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState(null);
@@ -68,7 +71,16 @@ export default function ProfileScreen() {
     setFriendCount((data.friends ?? []).length);
     setBio(data.bio ?? '');
     setAvatar(data.avatar ?? null);
-    setPosts(postsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const loadedPosts = postsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setPosts(loadedPosts);
+    const counts = {};
+    await Promise.all(loadedPosts.map(async p => {
+      try {
+        const snap = await getCountFromServer(collection(db, 'posts', p.id, 'comments'));
+        counts[p.id] = snap.data().count;
+      } catch { counts[p.id] = 0; }
+    }));
+    setCommentCounts(counts);
     setLoading(false);
   }
 
@@ -142,7 +154,13 @@ export default function ProfileScreen() {
             {SLOTS.map(slot =>
               item.songs?.[slot] ? <SongCard key={slot} song={item.songs[slot]} slot={slot} /> : null
             )}
-            <Reactions postId={item.id} reactions={item.reactions ?? {}} postOwnerUid={user.uid} />
+            <Reactions
+              postId={item.id}
+              reactions={item.reactions ?? {}}
+              postOwnerUid={user.uid}
+              commentCount={commentCounts[item.id] ?? 0}
+              onComment={() => setActiveComments({ postId: item.id, postOwnerUid: user.uid })}
+            />
           </View>
         )}
         ListEmptyComponent={
@@ -155,6 +173,12 @@ export default function ProfileScreen() {
         }
       />
 
+      <CommentsSheet
+        visible={!!activeComments}
+        onClose={() => setActiveComments(null)}
+        postId={activeComments?.postId}
+        postOwnerUid={activeComments?.postOwnerUid}
+      />
       <Dialog
         visible={showLogout}
         title="Cerrar sesión"
