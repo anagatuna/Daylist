@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { scheduleDailyReminder, cancelDailyReminder } from '@/lib/notifications';
 import { Colors, Radius } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export const REMINDER_KEY = 'reminder_config';
 
@@ -28,6 +29,7 @@ export function formatReminderTime(hour24, minute) {
 }
 
 export default function ReminderModal({ visible, onClose }) {
+  const { colors } = useTheme();
   const [enabled, setEnabled] = useState(false);
   const [hour24, setHour24] = useState(20);
   const [minute, setMinute] = useState(0);
@@ -70,26 +72,26 @@ export default function ReminderModal({ visible, onClose }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={s.backdrop}>
-        <View style={s.sheet}>
-          <View style={s.handle} />
-          <Text style={s.title}>Recordatorio diario</Text>
+        <View style={[s.sheet, { backgroundColor: colors.bg }]}>
+          <View style={[s.handle, { backgroundColor: colors.border }]} />
+          <Text style={[s.title, { color: colors.textPrimary }]}>Recordatorio diario</Text>
 
-          <View style={s.toggleRow}>
+          <View style={[s.toggleRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View>
-              <Text style={s.toggleLabel}>Recuérdame publicar</Text>
-              <Text style={s.toggleSub}>Notificación diaria</Text>
+              <Text style={[s.toggleLabel, { color: colors.textPrimary }]}>Recuérdame publicar</Text>
+              <Text style={[s.toggleSub, { color: colors.textMuted }]}>Notificación diaria</Text>
             </View>
             <Switch
               value={enabled}
               onValueChange={toggleEnabled}
-              trackColor={{ false: Colors.border, true: Colors.primary }}
+              trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor="#fff"
             />
           </View>
 
           {enabled && (
             <>
-              <Text style={s.pickerLabel}>HORA DEL RECORDATORIO</Text>
+              <Text style={[s.pickerLabel, { color: colors.textMuted }]}>HORA DEL RECORDATORIO</Text>
               <View style={s.columns}>
                 {/* Horas */}
                 <View style={{ flex: 1 }}>
@@ -109,7 +111,7 @@ export default function ReminderModal({ visible, onClose }) {
                   />
                 </View>
 
-                <Text style={s.colon}>:</Text>
+                <Text style={[s.colon, { color: colors.textPrimary }]}>:</Text>
 
                 {/* Minutos */}
                 <View style={{ flex: 1 }}>
@@ -148,11 +150,11 @@ export default function ReminderModal({ visible, onClose }) {
           )}
 
           <View style={s.btnRow}>
-            <TouchableOpacity style={s.cancelBtn} onPress={onClose}>
-              <Text style={s.cancelText}>Cancelar</Text>
+            <TouchableOpacity style={[s.cancelBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={onClose}>
+              <Text style={[s.cancelText, { color: colors.textSecondary }]}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.confirmBtn} onPress={confirm}>
-              <LinearGradient colors={Colors.gradientPrimary} style={s.confirmGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <LinearGradient colors={colors.gradientPrimary} style={s.confirmGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <Text style={s.confirmText}>Guardar</Text>
               </LinearGradient>
             </TouchableOpacity>

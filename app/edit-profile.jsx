@@ -12,9 +12,11 @@ import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const user = auth.currentUser;
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
@@ -78,7 +80,7 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
@@ -91,7 +93,7 @@ export default function EditProfileScreen() {
                   <Text style={styles.avatarInitial}>{displayName?.[0]?.toUpperCase() ?? '?'}</Text>
                 </LinearGradient>
               )}
-              <LinearGradient colors={Colors.gradientPrimary} style={styles.cameraBtn}>
+              <LinearGradient colors={Colors.gradientPrimary} style={[styles.cameraBtn, { borderColor: colors.bg }]}>
                 {uploading
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <Ionicons name="camera" size={15} color="#fff" />}
@@ -101,28 +103,28 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>NOMBRE DE USUARIO</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>NOMBRE DE USUARIO</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.card, color: colors.textPrimary, borderColor: colors.border }]}
               value={displayName}
               onChangeText={setDisplayName}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               maxLength={30}
             />
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>DESCRIPCIÓN</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>DESCRIPCIÓN</Text>
             <TextInput
-              style={[styles.input, styles.bioInput]}
+              style={[styles.input, styles.bioInput, { backgroundColor: colors.card, color: colors.textPrimary, borderColor: colors.border }]}
               value={bio}
               onChangeText={setBio}
               placeholder="Cuéntale a tus amigos algo sobre ti..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               multiline
               maxLength={150}
             />
-            <Text style={styles.charCount}>{bio.length}/150</Text>
+            <Text style={[styles.charCount, { color: colors.textMuted }]}>{bio.length}/150</Text>
           </View>
 
           <TouchableOpacity onPress={save} disabled={saving} activeOpacity={0.85}>

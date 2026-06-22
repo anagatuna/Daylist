@@ -9,9 +9,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import Dialog from '@/components/Dialog';
 
 export default function LoginScreen() {
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,8 +72,8 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {/* Orbes de fondo — muy sutiles */}
       <View style={styles.orb1} />
@@ -86,19 +88,19 @@ export default function LoginScreen() {
           <LinearGradient colors={Colors.gradientPrimary} style={styles.logoGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <Text style={styles.logoIcon}>♪</Text>
           </LinearGradient>
-          <Text style={styles.logoText}>daylist</Text>
-          <Text style={styles.logoSub}>tu diario musical</Text>
+          <Text style={[styles.logoText, { color: colors.textPrimary }]}>daylist</Text>
+          <Text style={[styles.logoSub, { color: colors.textMuted }]}>tu diario musical</Text>
         </Animated.View>
 
         {/* Formulario */}
         <Animated.View style={[styles.form, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.surface }]}>
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Correo</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Correo</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.bg, color: colors.textPrimary, borderColor: colors.border }]}
                 placeholder="tu@correo.com"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
@@ -107,11 +109,11 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Contraseña</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Contraseña</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.bg, color: colors.textPrimary, borderColor: colors.border }]}
                 placeholder="••••••••"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
@@ -129,7 +131,7 @@ export default function LoginScreen() {
 
           <Link href="/(auth)/register" asChild>
             <TouchableOpacity style={styles.linkBtn}>
-              <Text style={styles.linkText}>
+              <Text style={[styles.linkText, { color: colors.textMuted }]}>
                 ¿No tienes cuenta?{'  '}
                 <Text style={styles.linkAccent}>Regístrate</Text>
               </Text>

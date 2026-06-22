@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const SLOTS_META = [
   { key: 'morning',   label: 'Mañana' },
@@ -36,6 +37,7 @@ function formatDate(isoDate) {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const today = localDateStr();
   const { dayName, dayNum, month } = formatDate(today);
 
@@ -136,39 +138,39 @@ export default function HomeScreen() {
   const remaining = 3 - filled;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
       >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <Text style={styles.logo}>daylist</Text>
-            <TouchableOpacity onPress={() => router.push('/post/create')} style={styles.addBtn}>
-              <Ionicons name="add" size={20} color={Colors.textPrimary} />
+            <Text style={[styles.logo, { color: colors.textPrimary }]}>daylist</Text>
+            <TouchableOpacity onPress={() => router.push('/post/create')} style={[styles.addBtn, { backgroundColor: colors.card }]}>
+              <Ionicons name="add" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.dateTitle}>{dayName}, {dayNum} de {month}</Text>
+          <Text style={[styles.dateTitle, { color: colors.textMuted }]}>{dayName}, {dayNum} de {month}</Text>
           <View style={styles.statusRow}>
-            <View style={[styles.statusDot, { backgroundColor: remaining === 0 ? '#34C759' : Colors.primary }]} />
-            <Text style={styles.statusText}>
+            <View style={[styles.statusDot, { backgroundColor: remaining === 0 ? '#34C759' : colors.primary }]} />
+            <Text style={[styles.statusText, { color: colors.textMuted }]}>
               {remaining === 0 ? 'Día completo' : `${remaining} ${remaining === 1 ? 'momento' : 'momentos'} por agregar`}
             </Text>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* Mis canciones */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>HOY</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textMuted }]}>HOY</Text>
           {loading ? (
-            <ActivityIndicator color={Colors.primary} />
+            <ActivityIndicator color={colors.primary} />
           ) : myPost ? (
             SLOTS_META.map(({ key }) =>
               myPost.songs?.[key] ? (
@@ -198,23 +200,23 @@ export default function HomeScreen() {
         {/* Feed amigos */}
         {friendPosts.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.divider} />
-            <Text style={styles.sectionHeader}>TU RED</Text>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sectionHeader, { color: colors.textMuted }]}>TU RED</Text>
             {friendPosts.map(post => (
               <View key={post.id} style={styles.friendPost}>
                 <TouchableOpacity style={styles.friendHeader} onPress={() => router.push(`/user/${post.uid}`)}>
                   {post.avatar ? (
                     <Image source={{ uri: post.avatar }} style={styles.avatarImg} />
                   ) : (
-                    <View style={styles.avatarFallback}>
-                      <Text style={styles.avatarText}>{post.displayName?.[0]?.toUpperCase()}</Text>
+                    <View style={[styles.avatarFallback, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <Text style={[styles.avatarText, { color: colors.primary }]}>{post.displayName?.[0]?.toUpperCase()}</Text>
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.friendName}>{post.displayName}</Text>
-                    <Text style={styles.friendSub}>Publicó hoy</Text>
+                    <Text style={[styles.friendName, { color: colors.textPrimary }]}>{post.displayName}</Text>
+                    <Text style={[styles.friendSub, { color: colors.textMuted }]}>Publicó hoy</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+                  <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
                 </TouchableOpacity>
                 {SLOTS_META.map(({ key }) =>
                   post.songs?.[key] ? (
@@ -236,7 +238,7 @@ export default function HomeScreen() {
 
         {!loading && friendPosts.length === 0 && filled > 0 && (
           <View style={styles.emptyFriends}>
-            <Text style={styles.emptyFriendsText}>Agrega amigos para ver su soundtrack del día</Text>
+            <Text style={[styles.emptyFriendsText, { color: colors.textMuted }]}>Agrega amigos para ver su soundtrack del día</Text>
           </View>
         )}
       </ScrollView>

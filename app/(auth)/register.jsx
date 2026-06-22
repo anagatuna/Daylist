@@ -10,9 +10,11 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import Dialog from '@/components/Dialog';
 
 export default function RegisterScreen() {
+  const { colors, isDark } = useTheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -79,8 +81,8 @@ export default function RegisterScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={styles.orb1} />
       <View style={styles.orb2} />
 
@@ -90,22 +92,22 @@ export default function RegisterScreen() {
 
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
           <View style={styles.header}>
-            <Text style={styles.title}>Crea tu cuenta</Text>
-            <Text style={styles.subtitle}>Únete y comparte tu soundtrack diario</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Crea tu cuenta</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Únete y comparte tu soundtrack diario</Text>
           </View>
 
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.surface }]}>
             {[
               { label: 'Nombre de usuario', value: name,     setter: setName,     placeholder: 'Tu nombre',       secure: false },
               { label: 'Correo',            value: email,    setter: setEmail,    placeholder: 'tu@correo.com',   secure: false, keyboard: 'email-address' },
               { label: 'Contraseña',        value: password, setter: setPassword, placeholder: '••••••••',        secure: true },
             ].map(({ label, value, setter, placeholder, secure, keyboard }) => (
               <View key={label} style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>{label}</Text>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{label}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.bg, color: colors.textPrimary, borderColor: colors.border }]}
                   placeholder={placeholder}
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   autoCapitalize="none"
                   keyboardType={keyboard ?? 'default'}
                   secureTextEntry={secure}
@@ -126,7 +128,7 @@ export default function RegisterScreen() {
 
           <Link href="/(auth)/login" asChild>
             <TouchableOpacity style={styles.linkBtn}>
-              <Text style={styles.linkText}>
+              <Text style={[styles.linkText, { color: colors.textMuted }]}>
                 ¿Ya tienes cuenta?{'  '}
                 <Text style={styles.linkAccent}>Inicia sesión</Text>
               </Text>

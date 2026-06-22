@@ -1,6 +1,7 @@
 import { Modal, View, StyleSheet, Platform, Pressable, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 /**
  * Cross-platform pageSheet modal.
@@ -11,6 +12,8 @@ import { Colors } from '@/constants/Theme';
  *              Default false sizes the sheet to its content (phrase input, etc).
  */
 export default function SheetModal({ visible, onClose, children, fullHeight = false }) {
+  const { colors } = useTheme();
+
   if (Platform.OS === 'ios') {
     return (
       <Modal
@@ -18,7 +21,7 @@ export default function SheetModal({ visible, onClose, children, fullHeight = fa
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={onClose}>
-        <View style={{ flex: 1, backgroundColor: Colors.bg }}>
+        <View style={{ flex: 1, backgroundColor: colors.bg }}>
           {children}
         </View>
       </Modal>
@@ -33,6 +36,7 @@ export default function SheetModal({ visible, onClose, children, fullHeight = fa
 }
 
 function AndroidSheet({ visible, onClose, children, fullHeight }) {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -47,12 +51,12 @@ function AndroidSheet({ visible, onClose, children, fullHeight }) {
         <KeyboardAvoidingView behavior="padding">
           <View style={[
             styles.sheet,
+            { backgroundColor: colors.bg },
             fullHeight && styles.sheetFull,
             fullHeight
               ? { paddingTop: 0, paddingBottom: insets.bottom || 16 }
               : { paddingTop: 8, paddingBottom: insets.bottom || 16 },
           ]}>
-            {!fullHeight && <View style={styles.handle} />}
             {children}
           </View>
         </KeyboardAvoidingView>

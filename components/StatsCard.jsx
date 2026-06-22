@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const SLOTS = ['morning', 'afternoon', 'night'];
 
@@ -21,21 +22,22 @@ function computeTopArtists(posts) {
 }
 
 export default function StatsCard({ posts, marginBottom = 0 }) {
+  const { colors } = useTheme();
   if (!posts?.length) return null;
   const topArtists = computeTopArtists(posts);
   if (!topArtists.length) return null;
 
   return (
     <View style={[s.wrap, { marginBottom }]}>
-      <View style={s.card}>
-        <Text style={s.title}>ARTISTAS MÁS ESCUCHADOS</Text>
+      <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[s.title, { color: colors.textMuted }]}>ARTISTAS MÁS ESCUCHADOS</Text>
         {topArtists.map(([artist, count], i) => (
           <View key={artist} style={s.row}>
-            <LinearGradient colors={Colors.gradientPrimary} style={s.badge} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            <LinearGradient colors={colors.gradientPrimary} style={s.badge} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <Text style={s.badgeText}>#{i + 1}</Text>
             </LinearGradient>
-            <Text style={s.artist} numberOfLines={1}>{artist}</Text>
-            <Text style={s.count}>{count}x</Text>
+            <Text style={[s.artist, { color: colors.textPrimary }]} numberOfLines={1}>{artist}</Text>
+            <Text style={[s.count, { color: colors.textMuted }]}>{count}x</Text>
           </View>
         ))}
       </View>

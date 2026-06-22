@@ -19,6 +19,7 @@ import Dialog from '@/components/Dialog';
 import ReminderModal, { REMINDER_KEY, formatReminderTime } from '@/components/ReminderModal';
 import StatsCard from '@/components/StatsCard';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const SLOTS = ['morning', 'afternoon', 'night'];
 
@@ -32,6 +33,7 @@ function formatPostDate(isoDate) {
 
 export default function ProfileScreen() {
   const { user } = useAuth();
+  const { colors, isDark, preference, setPreference } = useTheme();
   const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [commentCounts, setCommentCounts] = useState({});
@@ -91,8 +93,8 @@ export default function ProfileScreen() {
   if (!user) return null;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <FlatList
         data={posts}
         keyExtractor={p => p.id}
@@ -101,8 +103,8 @@ export default function ProfileScreen() {
         ListHeaderComponent={
           <View>
             {/* Hero */}
-            <View style={styles.heroShadow}>
-            <View style={styles.hero}>
+            <View style={[styles.heroShadow, { backgroundColor: colors.surface }]}>
+            <View style={[styles.hero, { backgroundColor: colors.surface }]}>
               <LinearGradient
                 colors={['rgba(180,141,224,0.18)', 'rgba(218,143,189,0.08)', 'transparent']}
                 style={StyleSheet.absoluteFill}
@@ -110,47 +112,65 @@ export default function ProfileScreen() {
 
               <View style={styles.topBtns}>
                 <TouchableOpacity style={styles.editBtn} onPress={() => router.push('/edit-profile')}>
-                  <Ionicons name="pencil-outline" size={15} color={Colors.primary} />
-                  <Text style={styles.editBtnText}>Editar</Text>
+                  <Ionicons name="pencil-outline" size={15} color={colors.primary} />
+                  <Text style={[styles.editBtnText, { color: colors.primary }]}>Editar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.bellBtn} onPress={() => setShowReminder(true)}>
-                  <Ionicons name={reminderTime ? 'notifications' : 'notifications-outline'} size={18} color={reminderTime ? Colors.primary : Colors.textMuted} />
+                  <Ionicons name={reminderTime ? 'notifications' : 'notifications-outline'} size={18} color={reminderTime ? colors.primary : colors.textMuted} />
                 </TouchableOpacity>
               </View>
 
               <AvatarPreview uri={avatar} size={72} initial={user.displayName?.[0]} style={styles.avatarImg} />
 
-              <Text style={styles.displayName}>{user.displayName}</Text>
-              <Text style={styles.email}>{user.email}</Text>
-              {bio ? <Text style={styles.bio}>{bio}</Text> : null}
+              <Text style={[styles.displayName, { color: colors.textPrimary }]}>{user.displayName}</Text>
+              <Text style={[styles.email, { color: colors.textMuted }]}>{user.email}</Text>
+              {bio ? <Text style={[styles.bio, { color: colors.textSecondary }]}>{bio}</Text> : null}
 
               <View style={styles.stats}>
                 <View style={styles.stat}>
-                  <Text style={styles.statNum}>{posts.length}</Text>
-                  <Text style={styles.statLabel}>días</Text>
+                  <Text style={[styles.statNum, { color: colors.textPrimary }]}>{posts.length}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textMuted }]}>días</Text>
                 </View>
-                <View style={styles.statDivider} />
+                <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                 <TouchableOpacity style={styles.stat} onPress={() => router.push('/(tabs)/friends')}>
-                  <Text style={styles.statNum}>{friendCount}</Text>
-                  <Text style={[styles.statLabel, { color: Colors.primary }]}>amigos</Text>
+                  <Text style={[styles.statNum, { color: colors.textPrimary }]}>{friendCount}</Text>
+                  <Text style={[styles.statLabel, { color: colors.primary }]}>amigos</Text>
                 </TouchableOpacity>
               </View>
 
+              {/* Theme selector */}
+              <View style={[styles.themeRow, { borderTopColor: colors.border }]}>
+                {[
+                  { key: 'system', icon: 'phone-portrait-outline', label: 'Sistema' },
+                  { key: 'light',  icon: 'sunny-outline',          label: 'Claro' },
+                  { key: 'dark',   icon: 'moon-outline',           label: 'Oscuro' },
+                ].map(opt => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[styles.themeOption, preference === opt.key && { backgroundColor: colors.primary + '18' }]}
+                    onPress={() => setPreference(opt.key)}
+                  >
+                    <Ionicons name={opt.icon} size={16} color={preference === opt.key ? colors.primary : colors.textMuted} />
+                    <Text style={[styles.themeLabel, { color: preference === opt.key ? colors.primary : colors.textMuted }]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
               <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={15} color={Colors.textMuted} />
-                <Text style={styles.logoutText}>Cerrar sesión</Text>
+                <Ionicons name="log-out-outline" size={15} color={colors.textMuted} />
+                <Text style={[styles.logoutText, { color: colors.textMuted }]}>Cerrar sesión</Text>
               </TouchableOpacity>
             </View>
             </View>
 
             {!loading && posts.length > 0 && <StatsCard posts={posts} />}
-            <Text style={styles.sectionTitle}>HISTORIAL</Text>
-            {loading && <ActivityIndicator color={Colors.primary} style={{ marginTop: 20 }} />}
+            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>HISTORIAL</Text>
+            {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />}
           </View>
         }
         renderItem={({ item }) => (
           <View style={styles.postBlock}>
-            <Text style={styles.postDate}>{formatPostDate(item.date)}</Text>
+            <Text style={[styles.postDate, { color: colors.textSecondary }]}>{formatPostDate(item.date)}</Text>
             {SLOTS.map(slot =>
               item.songs?.[slot] ? (
                 <SongCard
@@ -169,8 +189,8 @@ export default function ProfileScreen() {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
-              <Ionicons name="musical-notes-outline" size={40} color={Colors.border} />
-              <Text style={styles.emptyText}>Aún no has publicado nada</Text>
+              <Ionicons name="musical-notes-outline" size={40} color={colors.border} />
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>Aún no has publicado nada</Text>
             </View>
           ) : null
         }
@@ -260,6 +280,18 @@ const styles = StyleSheet.create({
   statNum:     { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
   statLabel:   { color: Colors.textMuted, fontSize: 11, marginTop: 1 },
   statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: Colors.border },
+
+  themeRow: {
+    flexDirection: 'row', justifyContent: 'center', gap: 8,
+    marginTop: 16, paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  themeOption: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: Radius.pill,
+  },
+  themeLabel: { fontSize: 12, fontWeight: '500' },
 
   logoutBtn:  { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 14, padding: 6 },
   logoutText: { color: Colors.textMuted, fontSize: 12 },

@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList,
+  View, Text, TextInput, TouchableOpacity, FlatList, Pressable, Modal,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
   Image, Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Modal } from 'react-native';
 import {
   collection, addDoc, query, where, orderBy, onSnapshot,
   serverTimestamp, doc, deleteDoc, getDoc,
@@ -15,11 +14,13 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { notifyComment, notifyReply } from '@/lib/notifications';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const SLOT_LABELS = { morning: 'Mañana', afternoon: 'Tarde', night: 'Noche' };
 
 export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, slot }) {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -121,20 +122,20 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
     const isOwn = item.uid === user?.uid;
     return (
       <View style={[styles.commentRow, item._isReply && styles.replyRow]}>
-        {item._isReply && <View style={styles.replyLine} />}
+        {item._isReply && <View style={[styles.replyLine, { backgroundColor: colors.border }]} />}
         <View style={styles.commentBody}>
           <View style={styles.commentHeader}>
             {item.avatar ? (
               <Image source={{ uri: item.avatar }} style={styles.avatar} />
             ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarLetter}>{item.displayName?.[0]?.toUpperCase()}</Text>
+              <View style={[styles.avatarFallback, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={[styles.avatarLetter, { color: colors.primary }]}>{item.displayName?.[0]?.toUpperCase()}</Text>
               </View>
             )}
-            <Text style={styles.commentName}>{item.displayName}</Text>
-            <Text style={styles.commentTime}>{formatTime(item.createdAt)}</Text>
+            <Text style={[styles.commentName, { color: colors.textPrimary }]}>{item.displayName}</Text>
+            <Text style={[styles.commentTime, { color: colors.textMuted }]}>{formatTime(item.createdAt)}</Text>
           </View>
-          <Text style={styles.commentText}>{item.text}</Text>
+          <Text style={[styles.commentText, { color: colors.textPrimary }]}>{item.text}</Text>
           <View style={styles.commentActions}>
             <TouchableOpacity
               onPress={() => {
@@ -158,25 +159,26 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
   const content = (
     <View style={[
       styles.sheetIOS,
+      { backgroundColor: colors.bg },
       Platform.OS === 'android' && { paddingTop: insets.top },
       { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : (insets.bottom + 16 || 24) },
     ]}>
       {/* Header */}
       <View style={styles.sheetHeader}>
-        <Text style={styles.sheetTitle}>Comentarios · {SLOT_LABELS[slot] ?? ''}</Text>
+        <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Comentarios · {SLOT_LABELS[slot] ?? ''}</Text>
         <TouchableOpacity onPress={onClose} hitSlop={8}>
-          <Ionicons name="close" size={24} color={Colors.textPrimary} />
+          <Ionicons name="close" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
       {/* Comments list */}
       {loading ? (
         <View style={styles.empty}>
-          <ActivityIndicator color={Colors.primary} />
+          <ActivityIndicator color={colors.primary} />
         </View>
       ) : flatList.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>Sin comentarios aún. ¡Sé el primero!</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>Sin comentarios aún. ¡Sé el primero!</Text>
         </View>
       ) : (
         <FlatList
@@ -191,21 +193,21 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
 
       {/* Reply banner */}
       {replyTo && (
-        <View style={styles.replyBanner}>
-          <Text style={styles.replyBannerText}>Respondiendo a <Text style={{ color: Colors.primary }}>{replyTo.displayName}</Text></Text>
+        <View style={[styles.replyBanner, { borderTopColor: colors.border }]}>
+          <Text style={[styles.replyBannerText, { color: colors.textMuted }]}>Respondiendo a <Text style={{ color: colors.primary }}>{replyTo.displayName}</Text></Text>
           <TouchableOpacity onPress={cancelReply} hitSlop={8}>
-            <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
       )}
 
       {/* Input */}
-      <View style={styles.inputRow}>
+      <View style={[styles.inputRow, { borderTopColor: colors.border }]}>
         <TextInput
           ref={inputRef}
-          style={styles.input}
+          style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
           placeholder="Escribe un comentario…"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={colors.textMuted}
           value={text}
           onChangeText={setText}
           multiline
@@ -215,7 +217,7 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
           blurOnSubmit={false}
         />
         <TouchableOpacity
-          style={[styles.sendBtn, (!text.trim() || sending) && styles.sendBtnDisabled]}
+          style={[styles.sendBtn, { backgroundColor: colors.primary }, (!text.trim() || sending) && styles.sendBtnDisabled]}
           onPress={send}
           disabled={!text.trim() || sending}
         >
@@ -228,15 +230,33 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
     </View>
   );
 
+  if (Platform.OS === 'ios') {
+    return (
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={onClose}
+      >
+        {content}
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}
-      statusBarTranslucent={Platform.OS === 'android'}
+      transparent
+      statusBarTranslucent
       onRequestClose={onClose}
     >
-      {content}
+      <View style={styles.androidRoot}>
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <View style={[styles.androidSheet, { backgroundColor: colors.bg }]}>
+          {content}
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -253,6 +273,17 @@ function formatTime(ts) {
 }
 
 const styles = StyleSheet.create({
+  androidRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  androidSheet: {
+    height: '92%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
+  },
   sheetIOS: {
     flex: 1,
     backgroundColor: Colors.bg,

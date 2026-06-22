@@ -3,6 +3,7 @@ import {
   Image, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const ACCENT = {
   morning:   { bar: ['#E8B86D', '#D4956A'], dot: '#E8B86D' },
@@ -24,11 +25,12 @@ function formatMs(ms) {
 }
 
 function FilledBlock({ slot, onPlay }) {
+  const { colors } = useTheme();
   const { track } = slot;
   const accent = ACCENT[slot.timeOfDay] ?? ACCENT.morning;
 
   return (
-    <View style={styles.filledContainer}>
+    <View style={[styles.filledContainer, { backgroundColor: colors.card }]}>
       <LinearGradient
         colors={accent.bar}
         style={styles.accentBar}
@@ -39,12 +41,12 @@ function FilledBlock({ slot, onPlay }) {
       <Image source={{ uri: track.coverUrl }} style={styles.coverImage} />
 
       <View style={styles.trackInfo}>
-        <Text style={styles.timeLabel}>{SLOT_LABEL[slot.timeOfDay]?.toUpperCase()}</Text>
-        <Text style={styles.trackTitle} numberOfLines={1}>{track.title}</Text>
-        <Text style={styles.trackArtist} numberOfLines={1}>{track.artist}</Text>
+        <Text style={[styles.timeLabel, { color: colors.textMuted }]}>{SLOT_LABEL[slot.timeOfDay]?.toUpperCase()}</Text>
+        <Text style={[styles.trackTitle, { color: colors.textPrimary }]} numberOfLines={1}>{track.title}</Text>
+        <Text style={[styles.trackArtist, { color: colors.textMuted }]} numberOfLines={1}>{track.artist}</Text>
 
         {track.note ? (
-          <Text style={styles.trackNote} numberOfLines={2}>{track.note}</Text>
+          <Text style={[styles.trackNote, { color: colors.textMuted }]} numberOfLines={2}>{track.note}</Text>
         ) : null}
 
         {track.segment ? (
@@ -57,7 +59,7 @@ function FilledBlock({ slot, onPlay }) {
         ) : null}
       </View>
 
-      <TouchableOpacity style={styles.playButton} onPress={() => onPlay(slot)} activeOpacity={0.65}>
+      <TouchableOpacity style={[styles.playButton, { backgroundColor: colors.bg }]} onPress={() => onPlay(slot)} activeOpacity={0.65}>
         <View style={styles.playTriangle} />
       </TouchableOpacity>
     </View>
@@ -65,11 +67,12 @@ function FilledBlock({ slot, onPlay }) {
 }
 
 function EmptyBlock({ slot, onAdd }) {
+  const { colors } = useTheme();
   const accent = ACCENT[slot.timeOfDay] ?? ACCENT.morning;
 
   return (
     <TouchableOpacity
-      style={styles.emptyContainer}
+      style={[styles.emptyContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={() => onAdd(slot.timeOfDay)}
       activeOpacity={0.6}
     >
@@ -81,12 +84,12 @@ function EmptyBlock({ slot, onAdd }) {
       />
 
       <View style={styles.emptyLeft}>
-        <Text style={styles.emptyLabel}>{SLOT_LABEL[slot.timeOfDay]?.toUpperCase()}</Text>
-        <Text style={styles.emptyPrompt}>¿Qué definió tu {SLOT_LABEL[slot.timeOfDay]?.toLowerCase()}?</Text>
+        <Text style={[styles.emptyLabel, { color: colors.textMuted }]}>{SLOT_LABEL[slot.timeOfDay]?.toUpperCase()}</Text>
+        <Text style={[styles.emptyPrompt, { color: colors.textMuted }]}>¿Qué definió tu {SLOT_LABEL[slot.timeOfDay]?.toLowerCase()}?</Text>
       </View>
 
-      <View style={styles.addButton}>
-        <Text style={styles.addButtonIcon}>+</Text>
+      <View style={[styles.addButton, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+        <Text style={[styles.addButtonIcon, { color: colors.primary }]}>+</Text>
       </View>
     </TouchableOpacity>
   );

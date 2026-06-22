@@ -6,12 +6,14 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { notifyReaction } from '@/lib/notifications';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import EmojiPicker from 'rn-emoji-keyboard';
 
 const QUICK_EMOJIS = ['🔥', '💜', '😭', '🎵', '✨', '💀'];
 
 export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, commentCount = 0, onComment }) {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [localReactions, setLocalReactions] = useState(reactions);
   const [showPicker, setShowPicker] = useState(false);
   const [showEmojiKeyboard, setShowEmojiKeyboard] = useState(false);
@@ -78,27 +80,27 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
         {summary.map(([emoji, uids]) => (
           <TouchableOpacity
             key={emoji}
-            style={[styles.pill, myEmoji === emoji && styles.pillActive]}
+            style={[styles.pill, { backgroundColor: colors.bg, borderColor: colors.border }, myEmoji === emoji && styles.pillActive]}
             onPress={() => react(emoji)}
             onLongPress={() => openTooltip(emoji, uids)}
             delayLongPress={350}
           >
             <Text style={styles.pillEmoji}>{emoji}</Text>
-            <Text style={[styles.pillCount, myEmoji === emoji && styles.pillCountActive]}>
+            <Text style={[styles.pillCount, { color: colors.textMuted }, myEmoji === emoji && { color: colors.primary }]}>
               {uids.length}
             </Text>
           </TouchableOpacity>
         ))}
 
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowPicker(true)}>
-          <Ionicons name="add" size={18} color={Colors.primary} />
+          <Ionicons name="add" size={18} color={colors.primary} />
         </TouchableOpacity>
 
         {onComment && (
           <TouchableOpacity style={styles.commentPill} onPress={onComment}>
-            <Ionicons name="chatbubble-outline" size={15} color={Colors.primary} />
+            <Ionicons name="chatbubble-outline" size={15} color={colors.primary} />
             {commentCount > 0 && (
-              <Text style={styles.commentPillCount}>{commentCount}</Text>
+              <Text style={[styles.commentPillCount, { color: colors.primary }]}>{commentCount}</Text>
             )}
           </TouchableOpacity>
         )}
@@ -108,13 +110,13 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
       {tooltip && (
         <Modal visible transparent animationType="fade">
           <Pressable style={styles.backdrop} onPress={() => setTooltip(null)}>
-            <View style={styles.tooltipBox}>
+            <View style={[styles.tooltipBox, { backgroundColor: colors.surface }]}>
               <Text style={styles.tooltipEmoji}>{tooltip.emoji}</Text>
               {loadingTooltip ? (
-                <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 4 }} />
+                <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 4 }} />
               ) : (
                 tooltip.names.map((name, i) => (
-                  <Text key={i} style={styles.tooltipName}>{name}</Text>
+                  <Text key={i} style={[styles.tooltipName, { color: colors.textPrimary }]}>{name}</Text>
                 ))
               )}
             </View>
@@ -125,21 +127,21 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
       {/* Quick Picker */}
       <Modal visible={showPicker} transparent animationType="fade">
         <Pressable style={styles.backdrop} onPress={() => setShowPicker(false)}>
-          <View style={styles.picker}>
+          <View style={[styles.picker, { backgroundColor: colors.surface }]}>
             {QUICK_EMOJIS.map(emoji => (
               <TouchableOpacity
                 key={emoji}
-                style={[styles.emojiBtn, myEmoji === emoji && styles.emojiBtnActive]}
+                style={[styles.emojiBtn, { backgroundColor: colors.bg }, myEmoji === emoji && styles.emojiBtnActive]}
                 onPress={() => react(emoji)}
               >
                 <Text style={styles.emojiText}>{emoji}</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={styles.emojiBtn}
+              style={[styles.emojiBtn, { backgroundColor: colors.bg }]}
               onPress={() => { setShowPicker(false); setShowEmojiKeyboard(true); }}
             >
-              <Ionicons name="add" size={24} color={Colors.primary} />
+              <Ionicons name="add" size={24} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -151,37 +153,30 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
         open={showEmojiKeyboard}
         onClose={() => setShowEmojiKeyboard(false)}
         expandable={false}
-        defaultHeight="40%"
+        defaultHeight="55%"
         enableSearchBar
         enableRecentlyUsed
         categoryPosition="bottom"
         theme={{
           backdrop: 'rgba(0,0,0,0.25)',
-          knob: Colors.border,
-          container: Colors.bg,
-          header: Colors.textSecondary,
-          skinTonesContainer: Colors.bg,
+          knob: colors.border,
+          container: colors.bg,
+          header: colors.textSecondary,
+          skinTonesContainer: colors.bg,
           category: {
-            icon: Colors.textMuted,
-            iconActive: Colors.primary,
-            container: Colors.bg,
+            icon: colors.textMuted,
+            iconActive: colors.primary,
+            container: colors.bg,
             containerActive: 'rgba(155,109,214,0.12)',
           },
           search: {
-            text: Colors.textPrimary,
-            placeholder: Colors.textMuted,
-            icon: Colors.textMuted,
-            background: Colors.surface,
+            text: colors.textPrimary,
+            placeholder: colors.textMuted,
+            icon: colors.textMuted,
+            background: colors.surface,
           },
           emoji: {
             selected: 'rgba(155,109,214,0.12)',
-          },
-        }}
-        styles={{
-          container: {
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
-            paddingBottom: 0,
           },
         }}
       />

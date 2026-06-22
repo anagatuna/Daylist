@@ -13,6 +13,7 @@ import Reactions from './Reactions';
 import CommentsSheet from './CommentsSheet';
 import { getLyrics } from '@/lib/musixmatch';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const SLOT_CONFIG = {
   morning:   { label: 'Mañana' },
@@ -26,6 +27,7 @@ function parseLyrics(text) {
 }
 
 export default function SongCard({ song, slot, postId, postOwnerUid, reactions, commentCount }) {
+  const { colors } = useTheme();
   const [showLyrics, setShowLyrics] = useState(false);
   const [lyrics, setLyrics] = useState(null);
   const [loadingLyrics, setLoadingLyrics] = useState(false);
@@ -58,30 +60,30 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
   const stanzas = parseLyrics(lyrics);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.card }]}>
       {/* Slot label */}
-      <Text style={styles.slotLabel}>{config.label.toUpperCase()}</Text>
+      <Text style={[styles.slotLabel, { color: colors.primary }]}>{config.label.toUpperCase()}</Text>
 
       {/* Main content */}
       <View style={styles.main}>
         {song.albumImage ? (
           <Image source={{ uri: song.albumImage }} style={styles.cover} />
         ) : (
-          <View style={[styles.cover, styles.coverFallback]}>
-            <Ionicons name="musical-note" size={22} color={Colors.textMuted} />
+          <View style={[styles.cover, styles.coverFallback, { backgroundColor: colors.bg }]}>
+            <Ionicons name="musical-note" size={22} color={colors.textMuted} />
           </View>
         )}
 
         <View style={styles.info}>
-          <Text style={styles.trackName} numberOfLines={2}>{song.name}</Text>
-          <Text style={styles.artist} numberOfLines={1}>{song.artist}</Text>
-          {song.album ? <Text style={styles.album} numberOfLines={1}>{song.album}</Text> : null}
+          <Text style={[styles.trackName, { color: colors.textPrimary }]} numberOfLines={2}>{song.name}</Text>
+          <Text style={[styles.artist, { color: colors.primary }]} numberOfLines={1}>{song.artist}</Text>
+          {song.album ? <Text style={[styles.album, { color: colors.textSecondary }]} numberOfLines={1}>{song.album}</Text> : null}
         </View>
       </View>
 
       {/* Phrase */}
       {song.phrase ? (
-        <Text style={styles.phrase}>"{song.phrase}"</Text>
+        <Text style={[styles.phrase, { color: colors.textSecondary, borderLeftColor: colors.secondary }]}>"{song.phrase}"</Text>
       ) : null}
 
       {/* Player */}
@@ -92,10 +94,10 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
       />
 
       {/* Actions */}
-      <View style={styles.actions}>
+      <View style={[styles.actions, { borderTopColor: colors.border }]}>
         <TouchableOpacity style={styles.actionBtn} onPress={openLyrics}>
-          <Ionicons name="document-text-outline" size={13} color={Colors.textMuted} />
-          <Text style={styles.actionText}>{hasSnippet ? 'Ver letra destacada' : 'Ver letra'}</Text>
+          <Ionicons name="document-text-outline" size={13} color={colors.textMuted} />
+          <Text style={[styles.actionText, { color: colors.textMuted }]}>{hasSnippet ? 'Ver letra destacada' : 'Ver letra'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.spotifyBtn} onPress={openSpotify}>
@@ -125,13 +127,13 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
 
       {/* Lyrics modal */}
       <SheetModal visible={showLyrics} onClose={() => setShowLyrics(false)} fullHeight>
-        <View style={styles.modal}>
+        <View style={[styles.modal, { backgroundColor: colors.bg }]}>
           <ImageBackground
             source={song.albumImage ? { uri: song.albumImage } : undefined}
             style={styles.modalHero}
             blurRadius={Platform.OS === 'ios' ? 40 : 8}>
             <LinearGradient
-              colors={['rgba(242,242,247,0.1)', 'rgba(242,242,247,1)']}
+              colors={[colors.bg + '1A', colors.bg]}
               style={styles.heroGradient}>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setShowLyrics(false)}>
                 <Ionicons name="chevron-down" size={16} color="#fff" />
@@ -139,8 +141,8 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
               <View style={styles.heroRow}>
                 {song.albumImage && <Image source={{ uri: song.albumImage }} style={styles.heroCover} />}
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.heroTitle} numberOfLines={1}>{song.name}</Text>
-                  <Text style={styles.heroArtist}>{song.artist}</Text>
+                  <Text style={[styles.heroTitle, { color: colors.textPrimary }]} numberOfLines={1}>{song.name}</Text>
+                  <Text style={[styles.heroArtist, { color: colors.textSecondary }]}>{song.artist}</Text>
                 </View>
               </View>
               {hasSnippet && (
@@ -156,14 +158,14 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
             contentContainerStyle={styles.lyricsBody}
             showsVerticalScrollIndicator={false}>
             {loadingLyrics ? (
-              <ActivityIndicator color={Colors.primary} style={{ marginTop: 48 }} />
+              <ActivityIndicator color={colors.primary} style={{ marginTop: 48 }} />
             ) : stanzas.length > 0 ? (
               stanzas.map((stanza, i) => (
                 <View key={i} style={styles.stanza}>
                   {stanza.split('\n').map((line, j) => {
                     const isHighlighted = snippetArr.some(s => s.trim() === line.trim());
                     return (
-                      <Text key={j} style={[styles.lyricLine, isHighlighted && styles.lyricLineHL]}>
+                      <Text key={j} style={[styles.lyricLine, { color: colors.textMuted }, isHighlighted && { color: colors.primary, fontWeight: '700' }]}>
                         {line}
                       </Text>
                     );
@@ -172,8 +174,8 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
               ))
             ) : (
               <View style={styles.noLyrics}>
-                <Ionicons name="musical-note-outline" size={40} color={Colors.border} />
-                <Text style={styles.noLyricsText}>Letra no disponible</Text>
+                <Ionicons name="musical-note-outline" size={40} color={colors.border} />
+                <Text style={[styles.noLyricsText, { color: colors.textMuted }]}>Letra no disponible</Text>
               </View>
             )}
           </ScrollView>

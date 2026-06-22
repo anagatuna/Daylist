@@ -3,8 +3,10 @@ import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function AudioPlayer({ previewUrl, startSec = 0, endSec = null }) {
+  const { colors } = useTheme();
   const soundRef = useRef(null);
   const stoppingRef = useRef(false);
   const [playing, setPlaying] = useState(false);
@@ -73,8 +75,8 @@ export default function AudioPlayer({ previewUrl, startSec = 0, endSec = null })
   if (!previewUrl) {
     return (
       <View style={styles.noPreviewRow}>
-        <Ionicons name="musical-note-outline" size={14} color="#444" />
-        <Text style={styles.noPreviewText}>Preview no disponible</Text>
+        <Ionicons name="musical-note-outline" size={14} color={colors.textMuted} />
+        <Text style={[styles.noPreviewText, { color: colors.textMuted }]}>Preview no disponible</Text>
       </View>
     );
   }
@@ -85,13 +87,13 @@ export default function AudioPlayer({ previewUrl, startSec = 0, endSec = null })
         <Ionicons
           name={playing ? 'pause-circle' : 'play-circle'}
           size={36}
-          color={Colors.primary}
+          color={colors.primary}
         />
       </TouchableOpacity>
-      <View style={styles.barBg}>
-        <View style={[styles.barFill, { width: `${progress * 100}%` }]} />
+      <View style={[styles.barBg, { backgroundColor: colors.border }]}>
+        <View style={[styles.barFill, { width: `${progress * 100}%`, backgroundColor: colors.primary }]} />
       </View>
-      <Text style={styles.time}>
+      <Text style={[styles.time, { color: colors.textMuted }]}>
         {formatSec(elapsed)}/{formatSec(segmentDuration)}
       </Text>
     </View>

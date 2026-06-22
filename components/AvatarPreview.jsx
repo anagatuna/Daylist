@@ -3,8 +3,10 @@ import { Modal, View, Image, TouchableOpacity, TouchableWithoutFeedback, StyleSh
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function AvatarPreview({ uri, size = 72, initial, style }) {
+  const { colors } = useTheme();
   const [visible, setVisible] = useState(false);
 
   const avatarStyle = [{ width: size, height: size, borderRadius: size / 2 }, style];
@@ -15,7 +17,7 @@ export default function AvatarPreview({ uri, size = 72, initial, style }) {
         {uri ? (
           <Image source={{ uri }} style={avatarStyle} />
         ) : (
-          <LinearGradient colors={Colors.gradientPrimary} style={avatarStyle} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <LinearGradient colors={colors.gradientPrimary} style={avatarStyle} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={styles.initialWrapper}>
               <Ionicons name="person" size={size * 0.4} color="#fff" />
             </View>

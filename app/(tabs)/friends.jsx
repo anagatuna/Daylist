@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { notifyFriendRequest } from '@/lib/notifications';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import Dialog from '@/components/Dialog';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const SLOT_LABELS = { morning: 'mañana', afternoon: 'tarde', night: 'noche' };
 
@@ -26,6 +27,7 @@ export default function FriendsScreen() {
   const { user } = useAuth();
   const uid = user?.uid;
   const router = useRouter();
+  const { colors, isDark } = useTheme();
 
   const [tab, setTab] = useState('friends');
   const [friends, setFriends] = useState([]);
@@ -238,9 +240,9 @@ export default function FriendsScreen() {
 
   function UserRow({ item, right }) {
     return (
-      <TouchableOpacity style={styles.userRow} onPress={() => router.push(`/user/${item.id}`)} activeOpacity={0.7}>
+      <TouchableOpacity style={[styles.userRow, { backgroundColor: colors.card }]} onPress={() => router.push(`/user/${item.id}`)} activeOpacity={0.7}>
         <Avatar item={item} />
-        <Text style={[styles.userName, { flex: 1 }]}>{item.displayName}</Text>
+        <Text style={[styles.userName, { flex: 1, color: colors.textPrimary }]}>{item.displayName}</Text>
         {right}
       </TouchableOpacity>
     );
@@ -249,33 +251,33 @@ export default function FriendsScreen() {
   function ActivityItem({ item }) {
     if (item.type === 'reaction') {
       return (
-        <TouchableOpacity style={styles.activityRow} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
+        <TouchableOpacity style={[styles.activityRow, { backgroundColor: colors.card }]} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
           <View style={styles.activityAvatarWrap}>
             <Avatar item={item} size={40} />
-            <View style={styles.activityEmoji}>
+            <View style={[styles.activityEmoji, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={{ fontSize: 13 }}>{item.emoji}</Text>
             </View>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.activityText}>
+            <Text style={[styles.activityText, { color: colors.textPrimary }]}>
               <Text style={styles.activityName}>{item.displayName}</Text>
               {` reaccionó a tu ${SLOT_LABELS[item.slot] ?? 'publicación'}`}
             </Text>
-            <Text style={styles.activityDate}>{formatDate(item.postDate)}</Text>
+            <Text style={[styles.activityDate, { color: colors.textMuted }]}>{formatDate(item.postDate)}</Text>
           </View>
         </TouchableOpacity>
       );
     }
     const slotText = item.slots.map(s => SLOT_LABELS[s] ?? s).join(', ');
     return (
-      <TouchableOpacity style={styles.activityRow} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
+      <TouchableOpacity style={[styles.activityRow, { backgroundColor: colors.card }]} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
         <Avatar item={item} size={40} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.activityText}>
+          <Text style={[styles.activityText, { color: colors.textPrimary }]}>
             <Text style={styles.activityName}>{item.displayName}</Text>
             {` publicó su canción de la ${slotText}`}
           </Text>
-          <Text style={styles.activityDate}>{formatDate(item.postDate)}</Text>
+          <Text style={[styles.activityDate, { color: colors.textMuted }]}>{formatDate(item.postDate)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -312,18 +314,18 @@ export default function FriendsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabsScroll, { backgroundColor: colors.bg }]} contentContainerStyle={styles.tabsRow}>
         {TABS.map(t => (
           <TouchableOpacity
             key={t.key}
-            style={[styles.tab, tab === t.key && styles.tabActive]}
+            style={[styles.tab, tab === t.key && [styles.tabActive, { backgroundColor: colors.surface }]]}
             onPress={() => handleTabPress(t.key)}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]}>{t.label}</Text>
+              <Text style={[styles.tabText, { color: colors.textMuted }, tab === t.key && [styles.tabTextActive, { color: colors.textPrimary }]]}>{t.label}</Text>
               {t.dot && tab !== t.key && <View style={styles.unreadDot} />}
             </View>
           </TouchableOpacity>
@@ -340,7 +342,7 @@ export default function FriendsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="people-outline" size={40} color={Colors.border} />
-              <Text style={styles.emptyText}>Aún no tienes amigos. ¡Búscalos!</Text>
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>Aún no tienes amigos. ¡Búscalos!</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -359,7 +361,7 @@ export default function FriendsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="mail-outline" size={40} color={Colors.border} />
-              <Text style={styles.emptyText}>No hay solicitudes pendientes</Text>
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>No hay solicitudes pendientes</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -370,7 +372,7 @@ export default function FriendsScreen() {
                     <Text style={styles.acceptBtnText}>Aceptar</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectRequest(item.id)}>
+                <TouchableOpacity style={[styles.rejectBtn, { backgroundColor: colors.bg, borderColor: colors.border }]} onPress={() => rejectRequest(item.id)}>
                   <Ionicons name="close" size={18} color={Colors.textMuted} />
                 </TouchableOpacity>
               </View>
@@ -388,7 +390,7 @@ export default function FriendsScreen() {
             ListEmptyComponent={
               <View style={styles.empty}>
                 <Ionicons name="notifications-outline" size={40} color={Colors.border} />
-                <Text style={styles.emptyText}>Sin actividad reciente</Text>
+                <Text style={[styles.emptyText, { color: colors.textMuted }]}>Sin actividad reciente</Text>
               </View>
             }
             renderItem={({ item }) => <ActivityItem item={item} />}
@@ -397,11 +399,11 @@ export default function FriendsScreen() {
       ) : (
         <View style={{ flex: 1 }}>
           <View style={styles.searchRow}>
-            <View style={styles.searchInputWrapper}>
+            <View style={[styles.searchInputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.textPrimary }]}
                 placeholder="Buscar por nombre..."
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 onSubmitEditing={searchUsers}
@@ -432,7 +434,7 @@ export default function FriendsScreen() {
               searchQuery.trim() ? (
                 <View style={styles.empty}>
                   <Ionicons name="search-outline" size={40} color={Colors.border} />
-                  <Text style={styles.emptyText}>No se encontraron usuarios</Text>
+                  <Text style={[styles.emptyText, { color: colors.textMuted }]}>No se encontraron usuarios</Text>
                 </View>
               ) : null
             }
@@ -442,9 +444,9 @@ export default function FriendsScreen() {
               return (
                 <UserRow item={item} right={
                   isFriend ? (
-                    <Text style={styles.alreadyFriend}>Amigo</Text>
+                    <Text style={[styles.alreadyFriend, { color: colors.textMuted }]}>Amigo</Text>
                   ) : requested ? (
-                    <Text style={styles.alreadyFriend}>Enviada</Text>
+                    <Text style={[styles.alreadyFriend, { color: colors.textMuted }]}>Enviada</Text>
                   ) : (
                     <TouchableOpacity style={styles.addBtn} onPress={() => sendRequest(item.id)}>
                       <LinearGradient colors={Colors.gradientPrimary} style={styles.addBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
