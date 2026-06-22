@@ -6,6 +6,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 function TabIcon({ name, color, size, count }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -30,6 +31,7 @@ function TabIcon({ name, color, size, count }) {
 }
 
 export default function TabLayout() {
+  const { colors } = useTheme();
   const { user } = useAuth();
   const [pendingRequests, setPendingRequests] = useState(0);
 
@@ -45,12 +47,12 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.border,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
         },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
         headerShown: false,
       }}>

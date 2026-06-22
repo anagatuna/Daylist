@@ -4,22 +4,23 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { registerPushToken } from '@/lib/notifications';
-import { Colors } from '@/constants/Theme';
-
-const headerTheme = {
-  headerStyle: { backgroundColor: Colors.bg },
-  headerTintColor: Colors.textPrimary,
-  headerShadowVisible: false,
-  headerBackTitle: '',
-  headerBackTitleVisible: false,
-  headerBackButtonDisplayMode: 'minimal',
-  headerTitleStyle: { color: Colors.textPrimary, fontWeight: '700' },
-};
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootNav() {
   const { user, loading } = useAuth();
+  const { colors } = useTheme();
+
+  const headerTheme = {
+    headerStyle: { backgroundColor: colors.bg },
+    headerTintColor: colors.textPrimary,
+    headerShadowVisible: false,
+    headerBackTitle: '',
+    headerBackTitleVisible: false,
+    headerBackButtonDisplayMode: 'minimal',
+    headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
+  };
   const router = useRouter();
   const segments = useSegments();
   const notificationListener = useRef(null);
@@ -41,16 +42,13 @@ export default function RootLayout() {
     }
   }, [user, loading]);
 
-  // Registrar token de notificaciones cuando el usuario inicia sesión
   useEffect(() => {
     if (!user) return;
 
     registerPushToken(user.uid).catch(() => {});
 
-    // Escuchar notificaciones recibidas con la app abierta
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {});
 
-    // Navegar según el tipo de notificación
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
       if (data?.type === 'friend_request') {
@@ -76,5 +74,13 @@ export default function RootLayout() {
       <Stack.Screen name="user/[uid]" options={{ headerShown: false }} />
       <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Editar perfil', presentation: 'modal', ...headerTheme }} />
     </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootNav />
+    </ThemeProvider>
   );
 }

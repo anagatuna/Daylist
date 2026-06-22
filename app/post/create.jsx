@@ -17,6 +17,7 @@ import { getLyrics } from '@/lib/musixmatch';
 import AudioPlayer from '@/components/AudioPlayer';
 import SheetModal from '@/components/SheetModal';
 import { Colors, Radius } from '@/constants/Theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const SLOTS = [
   { key: 'morning',   label: 'Mañana' },
@@ -27,6 +28,7 @@ const SLOTS = [
 export default function CreatePostScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [songs, setSongs] = useState({ morning: null, afternoon: null, night: null });
   const [activeSlot, setActiveSlot] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -223,10 +225,10 @@ export default function CreatePostScreen() {
 
   if (alreadyPosted && !canEdit) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', gap: 12, padding: 32 }]}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', gap: 12, padding: 32, backgroundColor: colors.bg }]}>
         <Ionicons name="checkmark-circle" size={64} color={Colors.primary} />
-        <Text style={[styles.title, { textAlign: 'center', marginBottom: 0 }]}>¡Ya completaste tu Daylist de hoy!</Text>
-        <Text style={{ color: Colors.textSecondary, fontSize: 15, textAlign: 'center' }}>Vuelve mañana para agregar nuevas canciones.</Text>
+        <Text style={[styles.title, { textAlign: 'center', marginBottom: 0, color: colors.textPrimary }]}>¡Ya completaste tu Daylist de hoy!</Text>
+        <Text style={{ color: colors.textMuted, fontSize: 15, textAlign: 'center' }}>Vuelve mañana para agregar nuevas canciones.</Text>
         <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ marginTop: 16 }}>
           <LinearGradient colors={Colors.gradientPrimary} style={[styles.publishBtn, { paddingHorizontal: 32 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <Text style={styles.publishBtnText}>Volver al inicio</Text>
@@ -238,21 +240,21 @@ export default function CreatePostScreen() {
 
   if (activeSlot) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <View style={styles.searchHeader}>
           <TouchableOpacity onPress={() => { setActiveSlot(null); setResults([]); setSearchQuery(''); }}>
-            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.searchTitle}>Buscar canción</Text>
+          <Text style={[styles.searchTitle, { color: colors.textPrimary }]}>Buscar canción</Text>
         </View>
 
         <View style={styles.searchRow}>
-          <View style={styles.searchInputWrapper}>
-            <Ionicons name="search" size={16} color={Colors.textMuted} style={{ marginLeft: 12 }} />
+          <View style={[styles.searchInputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="search" size={16} color={colors.textMuted} style={{ marginLeft: 12 }} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.textPrimary }]}
               placeholder="Artista o canción..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
@@ -263,7 +265,7 @@ export default function CreatePostScreen() {
             {searching && <ActivityIndicator color={Colors.primary} size="small" style={{ marginRight: 12 }} />}
             {!searching && searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')} style={{ marginRight: 12 }}>
-                <Ionicons name="close-circle" size={17} color={Colors.textMuted} />
+                <Ionicons name="close-circle" size={17} color={colors.textMuted} />
               </TouchableOpacity>
             )}
           </View>
@@ -275,19 +277,19 @@ export default function CreatePostScreen() {
           contentContainerStyle={{ padding: 16, gap: 10 }}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
-            <TouchableOpacity style={styles.resultItem} onPress={() => selectTrack(item)}>
+            <TouchableOpacity style={[styles.resultItem, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => selectTrack(item)}>
               {item.artworkUrl100 ? (
                 <Image source={{ uri: item.artworkUrl100 }} style={styles.resultCover} />
               ) : (
-                <View style={[styles.resultCover, { backgroundColor: '#1a1a1a' }]} />
+                <View style={[styles.resultCover, { backgroundColor: colors.surface }]} />
               )}
               <View style={{ flex: 1 }}>
-                <Text style={styles.resultName} numberOfLines={1}>{item.trackName}</Text>
-                <Text style={styles.resultArtist} numberOfLines={1}>{item.artistName}</Text>
-                <Text style={styles.resultAlbum} numberOfLines={1}>{item.collectionName}</Text>
+                <Text style={[styles.resultName, { color: colors.textPrimary }]} numberOfLines={1}>{item.trackName}</Text>
+                <Text style={[styles.resultArtist, { color: colors.primary }]} numberOfLines={1}>{item.artistName}</Text>
+                <Text style={[styles.resultAlbum, { color: colors.textMuted }]} numberOfLines={1}>{item.collectionName}</Text>
                 {item.previewUrl
                   ? <Text style={styles.previewBadge}>▶ Preview disponible</Text>
-                  : <Text style={styles.noPreviewBadge}>Sin preview</Text>
+                  : <Text style={[styles.noPreviewBadge, { color: colors.textMuted }]}>Sin preview</Text>
                 }
               </View>
             </TouchableOpacity>
@@ -298,7 +300,7 @@ export default function CreatePostScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {alreadyPosted && canEdit && (
           <View style={styles.editBanner}>
@@ -306,21 +308,21 @@ export default function CreatePostScreen() {
             <Text style={styles.editBannerText}>Editando tu Daylist de hoy · hasta las 11pm</Text>
           </View>
         )}
-        <Text style={styles.title}>¿Qué canciones definen tu día?</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>¿Qué canciones definen tu día?</Text>
 
         {SLOTS.map(({ key, label }) => (
           <View key={key} style={styles.slotSection}>
-            <Text style={styles.slotLabel}>{label}</Text>
+            <Text style={[styles.slotLabel, { color: colors.textMuted }]}>{label}</Text>
 
             {songs[key] ? (
-              <View style={styles.selectedCard}>
+              <View style={[styles.selectedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.selectedRow}>
                   {songs[key].albumImage && (
                     <Image source={{ uri: songs[key].albumImage }} style={styles.selectedCover} />
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.selectedName} numberOfLines={1}>{songs[key].name}</Text>
-                    <Text style={styles.selectedArtist} numberOfLines={1}>{songs[key].artist}</Text>
+                    <Text style={[styles.selectedName, { color: colors.textPrimary }]} numberOfLines={1}>{songs[key].name}</Text>
+                    <Text style={[styles.selectedArtist, { color: colors.textSecondary }]} numberOfLines={1}>{songs[key].artist}</Text>
                     <AudioPlayer
                       previewUrl={songs[key].previewUrl}
                       startSec={songs[key].startSec}
@@ -328,47 +330,47 @@ export default function CreatePostScreen() {
                     />
                   </View>
                   <TouchableOpacity onPress={() => setSongs(p => ({ ...p, [key]: null }))}>
-                    <Ionicons name="close-circle" size={20} color="#555" />
+                    <Ionicons name="close-circle" size={20} color={colors.textMuted} />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.actionRow}>
                   <TouchableOpacity style={styles.actionBtn} onPress={() => openPhraseModal(key)}>
-                    <Ionicons name="chatbubble-outline" size={14} color="#888" />
-                    <Text style={styles.actionBtnText}>
+                    <Ionicons name="chatbubble-outline" size={14} color={colors.textMuted} />
+                    <Text style={[styles.actionBtnText, { color: colors.textMuted }]}>
                       {songs[key].phrase ? 'Editar frase' : 'Agregar frase'}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.actionBtn} onPress={() => openLyricModal(key)}>
-                    <Ionicons name="text-outline" size={14} color={Colors.textSecondary} />
-                    <Text style={styles.actionBtnText}>
+                    <Ionicons name="text-outline" size={14} color={colors.textMuted} />
+                    <Text style={[styles.actionBtnText, { color: colors.textMuted }]}>
                       {getSelectedLines(key).length > 0 ? 'Editar destacado' : 'Destacar letra'}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
                 {songs[key].phrase ? (
-                  <Text style={styles.phrasePreview}>"{songs[key].phrase}"</Text>
+                  <Text style={[styles.phrasePreview, { color: colors.textSecondary }]}>"{songs[key].phrase}"</Text>
                 ) : null}
 
                 {getSelectedLines(key).length > 0 ? (
                   <View style={styles.lyricSnippetPreview}>
-                    <Ionicons name="musical-note" size={12} color={Colors.primary} />
-                    <Text style={styles.lyricSnippetText}>{getSelectedLines(key).length} líneas destacadas en la letra</Text>
+                    <Ionicons name="musical-note" size={12} color={colors.primary} />
+                    <Text style={[styles.lyricSnippetText, { color: colors.textSecondary }]}>{getSelectedLines(key).length} líneas destacadas en la letra</Text>
                   </View>
                 ) : null}
               </View>
             ) : (
-              <TouchableOpacity style={styles.addBtn} onPress={() => setActiveSlot(key)}>
-                <Ionicons name="add-circle-outline" size={22} color={Colors.primary} />
-                <Text style={styles.addBtnText}>Agregar canción</Text>
+              <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.card, borderColor: colors.primary + '40' }]} onPress={() => setActiveSlot(key)}>
+                <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
+                <Text style={[styles.addBtnText, { color: colors.primary }]}>Agregar canción</Text>
               </TouchableOpacity>
             )}
           </View>
         ))}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: colors.bg, borderTopColor: colors.border }]}>
         <TouchableOpacity onPress={publish} disabled={saving} activeOpacity={0.85}>
           <LinearGradient colors={Colors.gradientPrimary} style={styles.publishBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishBtnText}>{alreadyPosted ? 'Guardar cambios' : 'Publicar'}</Text>}
@@ -378,23 +380,23 @@ export default function CreatePostScreen() {
 
       {/* Phrase modal */}
       <SheetModal visible={!!phraseModal} onClose={() => setPhraseModal(null)}>
-        <View style={styles.modal}>
+        <View style={[styles.modal, { backgroundColor: colors.bg }]}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Agregar frase</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Agregar frase</Text>
             <TouchableOpacity onPress={() => setPhraseModal(null)}>
-              <Ionicons name="close" size={24} color={Colors.textPrimary} />
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
           <TextInput
-            style={styles.phraseInput}
+            style={[styles.phraseInput, { backgroundColor: colors.card, color: colors.textPrimary, borderColor: colors.border }]}
             placeholder="¿Qué te transmite esta canción?"
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={phrase}
             onChangeText={setPhrase}
             multiline
             maxLength={200}
           />
-          <Text style={styles.charCount}>{phrase.length}/200</Text>
+          <Text style={[styles.charCount, { color: colors.textMuted }]}>{phrase.length}/200</Text>
           <TouchableOpacity onPress={savePhrase} activeOpacity={0.85}>
             <LinearGradient colors={Colors.gradientPrimary} style={styles.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <Text style={styles.saveBtnText}>Guardar</Text>
@@ -405,21 +407,21 @@ export default function CreatePostScreen() {
 
       {/* Lyric picker modal */}
       <SheetModal visible={!!lyricModal} onClose={() => setLyricModal(null)} fullHeight>
-        <View style={[styles.modal, styles.modalFull]}>
+        <View style={[styles.modal, styles.modalFull, { backgroundColor: colors.bg }]}>
           <View style={styles.modalHeader}>
             <View>
-              <Text style={styles.modalTitle}>Elige una línea</Text>
-              <Text style={styles.modalSub}>Toca la letra que quieres mostrar en tu post</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Elige una línea</Text>
+              <Text style={[styles.modalSub, { color: colors.textMuted }]}>Toca la letra que quieres mostrar en tu post</Text>
             </View>
             <TouchableOpacity onPress={() => setLyricModal(null)}>
-              <Ionicons name="close" size={24} color={Colors.textPrimary} />
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
           {lyricModal && getSelectedLines(lyricModal).length > 0 ? (
-            <View style={styles.currentSnippet}>
+            <View style={[styles.currentSnippet, { backgroundColor: colors.card }]}>
               <View style={styles.currentSnippetHeader}>
-                <Text style={styles.currentSnippetLabel}>{getSelectedLines(lyricModal).length} líneas seleccionadas</Text>
+                <Text style={[styles.currentSnippetLabel, { color: colors.textMuted }]}>{getSelectedLines(lyricModal).length} líneas seleccionadas</Text>
                 <TouchableOpacity onPress={() => setSongs(p => ({ ...p, [lyricModal]: { ...p[lyricModal], lyricSnippet: [] } }))}>
                   <Text style={styles.clearSnippet}>Limpiar todo</Text>
                 </TouchableOpacity>
@@ -429,14 +431,14 @@ export default function CreatePostScreen() {
 
           {!loadingLyrics && lyricLines.length > 0 && (
             <TouchableOpacity onPress={() => setLyricModal(null)} activeOpacity={0.85} style={{ paddingHorizontal: 20, marginBottom: 8 }}>
-              <LinearGradient colors={Colors.gradientPrimary} style={[styles.saveBtn, { marginTop: 0 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              <LinearGradient colors={colors.gradientPrimary} style={[styles.saveBtn, { marginTop: 0 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <Text style={styles.saveBtnText}>Listo</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
 
           {loadingLyrics ? (
-            <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+            <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
           ) : lyricLines.length > 0 ? (
             <FlatList
               data={lyricLines}
@@ -453,8 +455,8 @@ export default function CreatePostScreen() {
             />
           ) : (
             <View style={styles.noLyricsEmpty}>
-              <Ionicons name="musical-note-outline" size={40} color={Colors.border} />
-              <Text style={styles.noLyricsText}>Letra no disponible para esta canción</Text>
+              <Ionicons name="musical-note-outline" size={40} color={colors.border} />
+              <Text style={[styles.noLyricsText, { color: colors.textMuted }]}>Letra no disponible para esta canción</Text>
             </View>
           )}
         </View>
@@ -525,6 +527,7 @@ const styles = StyleSheet.create({
 });
 
 function LyricLineItem({ item, selected, maxReached, onToggle }) {
+  const { colors } = useTheme();
   const isSelected = selected.includes(item);
   const disabled = maxReached && !isSelected;
   return (
@@ -532,10 +535,10 @@ function LyricLineItem({ item, selected, maxReached, onToggle }) {
       style={[styles.lyricLine, isSelected && styles.lyricLineSelected, disabled && styles.lyricLineDisabled]}
       onPress={() => !disabled && onToggle(item)}
       activeOpacity={disabled ? 1 : 0.7}>
-      <Text style={[styles.lyricLineText, isSelected && styles.lyricLineTextSelected, disabled && styles.lyricLineTextDisabled]}>
+      <Text style={[styles.lyricLineText, { color: colors.textSecondary }, isSelected && { color: colors.textPrimary, fontWeight: '600' }, disabled && { color: colors.textMuted }]}>
         {item}
       </Text>
-      {isSelected && <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />}
+      {isSelected && <Ionicons name="checkmark-circle" size={18} color={colors.primary} />}
     </TouchableOpacity>
   );
 }
