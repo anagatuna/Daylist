@@ -6,14 +6,16 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { notifyReaction } from '@/lib/notifications';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
+import EmojiPicker from 'rn-emoji-keyboard';
 
-const EMOJIS = ['🔥', '💜', '😭', '🎵', '✨', '💀'];
+const QUICK_EMOJIS = ['🔥', '💜', '😭', '🎵', '✨', '💀'];
 
-export default function Reactions({ postId, reactions = {}, postOwnerUid, commentCount = 0, onComment }) {
+export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, commentCount = 0, onComment }) {
   const { user } = useAuth();
   const [localReactions, setLocalReactions] = useState(reactions);
   const [showPicker, setShowPicker] = useState(false);
-  const [tooltip, setTooltip] = useState(null); // { emoji, names[] }
+  const [showEmojiKeyboard, setShowEmojiKeyboard] = useState(false);
+  const [tooltip, setTooltip] = useState(null);
   const [loadingTooltip, setLoadingTooltip] = useState(false);
 
   useEffect(() => {
@@ -27,21 +29,19 @@ export default function Reactions({ postId, reactions = {}, postOwnerUid, commen
   async function react(emoji) {
     if (!user) return;
     setShowPicker(false);
+    setShowEmojiKeyboard(false);
 
     const isNewReaction = emoji !== myEmoji;
     const postRef = doc(db, 'posts', postId);
     const patch = {};
 
-    // Remove from previous emoji if switching
     if (myEmoji) {
-      patch[`reactions.${myEmoji}`] = arrayRemove(user.uid);
+      patch[`reactions.${slot}.${myEmoji}`] = arrayRemove(user.uid);
     }
-    // Add to new emoji (toggle off if same)
     if (isNewReaction) {
-      patch[`reactions.${emoji}`] = arrayUnion(user.uid);
+      patch[`reactions.${slot}.${emoji}`] = arrayUnion(user.uid);
     }
 
-    // Optimistic update
     setLocalReactions(prev => {
       const next = { ...prev };
       if (myEmoji) next[myEmoji] = (next[myEmoji] ?? []).filter(u => u !== user.uid);
@@ -91,7 +91,7 @@ export default function Reactions({ postId, reactions = {}, postOwnerUid, commen
         ))}
 
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowPicker(true)}>
-          <Text style={styles.addBtnText}>{myEmoji ? '•••' : '+'}</Text>
+          <Ionicons name="add" size={18} color={Colors.primary} />
         </TouchableOpacity>
 
         {onComment && (
@@ -122,11 +122,11 @@ export default function Reactions({ postId, reactions = {}, postOwnerUid, commen
         </Modal>
       )}
 
-      {/* Picker */}
+      {/* Quick Picker */}
       <Modal visible={showPicker} transparent animationType="fade">
         <Pressable style={styles.backdrop} onPress={() => setShowPicker(false)}>
           <View style={styles.picker}>
-            {EMOJIS.map(emoji => (
+            {QUICK_EMOJIS.map(emoji => (
               <TouchableOpacity
                 key={emoji}
                 style={[styles.emojiBtn, myEmoji === emoji && styles.emojiBtnActive]}
@@ -135,9 +135,56 @@ export default function Reactions({ postId, reactions = {}, postOwnerUid, commen
                 <Text style={styles.emojiText}>{emoji}</Text>
               </TouchableOpacity>
             ))}
+            <TouchableOpacity
+              style={styles.emojiBtn}
+              onPress={() => { setShowPicker(false); setShowEmojiKeyboard(true); }}
+            >
+              <Ionicons name="add" size={24} color={Colors.primary} />
+            </TouchableOpacity>
           </View>
         </Pressable>
       </Modal>
+
+      {/* Full Emoji Keyboard */}
+      <EmojiPicker
+        onEmojiSelected={e => react(e.emoji)}
+        open={showEmojiKeyboard}
+        onClose={() => setShowEmojiKeyboard(false)}
+        expandable={false}
+        defaultHeight="40%"
+        enableSearchBar
+        enableRecentlyUsed
+        categoryPosition="bottom"
+        theme={{
+          backdrop: 'rgba(0,0,0,0.25)',
+          knob: Colors.border,
+          container: Colors.bg,
+          header: Colors.textSecondary,
+          skinTonesContainer: Colors.bg,
+          category: {
+            icon: Colors.textMuted,
+            iconActive: Colors.primary,
+            container: Colors.bg,
+            containerActive: 'rgba(155,109,214,0.12)',
+          },
+          search: {
+            text: Colors.textPrimary,
+            placeholder: Colors.textMuted,
+            icon: Colors.textMuted,
+            background: Colors.surface,
+          },
+          emoji: {
+            selected: 'rgba(155,109,214,0.12)',
+          },
+        }}
+        styles={{
+          container: {
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
+            paddingBottom: 0,
+          },
+        }}
+      />
     </View>
   );
 }
@@ -166,7 +213,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: 'rgba(155,109,214,0.25)',
   },
-  addBtnText: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
 
   backdrop: { flex: 1, backgroundColor: 'rgba(28,28,30,0.4)', justifyContent: 'center', alignItems: 'center' },
 

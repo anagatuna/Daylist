@@ -94,7 +94,14 @@ export default function FriendsScreen() {
       // Obtener display names de los que reaccionaron
       const reactorIds = new Set();
       myPosts.forEach(post => {
-        Object.values(post.reactions ?? {}).forEach(uids => uids.forEach(u => { if (u !== uid) reactorIds.add(u); }));
+        const slotReactions = post.reactions ?? {};
+        Object.values(slotReactions).forEach(emojiMap => {
+          if (emojiMap && typeof emojiMap === 'object') {
+            Object.values(emojiMap).forEach(uids => {
+              if (Array.isArray(uids)) uids.forEach(u => { if (u !== uid) reactorIds.add(u); });
+            });
+          }
+        });
       });
       const reactorDocs = {};
       await Promise.all([...reactorIds].map(async rid => {
@@ -103,20 +110,25 @@ export default function FriendsScreen() {
       }));
 
       myPosts.forEach(post => {
-        const reactions = post.reactions ?? {};
-        Object.entries(reactions).forEach(([emoji, uids]) => {
-          uids.filter(u => u !== uid).forEach(reactorUid => {
-            const rd = reactorDocs[reactorUid] ?? {};
-            items.push({
-              key: `reaction-${post.id}-${emoji}-${reactorUid}`,
-              type: 'reaction',
-              emoji,
-              displayName: rd.displayName ?? 'Alguien',
-              avatar: rd.avatar ?? null,
-              uid: reactorUid,
-              postDate: post.date,
-              postId: post.id,
-              sortKey: post.createdAt?.seconds ?? 0,
+        const slotReactions = post.reactions ?? {};
+        Object.entries(slotReactions).forEach(([slot, emojiMap]) => {
+          if (!emojiMap || typeof emojiMap !== 'object') return;
+          Object.entries(emojiMap).forEach(([emoji, uids]) => {
+            if (!Array.isArray(uids)) return;
+            uids.filter(u => u !== uid).forEach(reactorUid => {
+              const rd = reactorDocs[reactorUid] ?? {};
+              items.push({
+                key: `reaction-${post.id}-${slot}-${emoji}-${reactorUid}`,
+                type: 'reaction',
+                emoji,
+                slot,
+                displayName: rd.displayName ?? 'Alguien',
+                avatar: rd.avatar ?? null,
+                uid: reactorUid,
+                postDate: post.date,
+                postId: post.id,
+                sortKey: post.createdAt?.seconds ?? 0,
+              });
             });
           });
         });
@@ -247,7 +259,7 @@ export default function FriendsScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.activityText}>
               <Text style={styles.activityName}>{item.displayName}</Text>
-              {' reaccionó a tu publicación'}
+              {` reaccionó a tu ${SLOT_LABELS[item.slot] ?? 'publicación'}`}
             </Text>
             <Text style={styles.activityDate}>{formatDate(item.postDate)}</Text>
           </View>

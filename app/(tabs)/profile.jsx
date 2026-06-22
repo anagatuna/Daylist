@@ -15,8 +15,6 @@ import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import AvatarPreview from '@/components/AvatarPreview';
 import SongCard from '@/components/SongCard';
-import Reactions from '@/components/Reactions';
-import CommentsSheet from '@/components/CommentsSheet';
 import Dialog from '@/components/Dialog';
 import ReminderModal, { REMINDER_KEY, formatReminderTime } from '@/components/ReminderModal';
 import StatsCard from '@/components/StatsCard';
@@ -37,7 +35,6 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [commentCounts, setCommentCounts] = useState({});
-  const [activeComments, setActiveComments] = useState(null);
   const [friendCount, setFriendCount] = useState(0);
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState(null);
@@ -74,12 +71,15 @@ export default function ProfileScreen() {
     const loadedPosts = postsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     setPosts(loadedPosts);
     const counts = {};
-    await Promise.all(loadedPosts.map(async p => {
-      try {
-        const snap = await getCountFromServer(collection(db, 'posts', p.id, 'comments'));
-        counts[p.id] = snap.data().count;
-      } catch { counts[p.id] = 0; }
-    }));
+    await Promise.all(loadedPosts.flatMap(p =>
+      SLOTS.map(async s => {
+        try {
+          const q2 = query(collection(db, 'posts', p.id, 'comments'), where('slot', '==', s));
+          const snap = await getCountFromServer(q2);
+          counts[`${p.id}_${s}`] = snap.data().count;
+        } catch { counts[`${p.id}_${s}`] = 0; }
+      })
+    ));
     setCommentCounts(counts);
     setLoading(false);
   }
@@ -152,15 +152,18 @@ export default function ProfileScreen() {
           <View style={styles.postBlock}>
             <Text style={styles.postDate}>{formatPostDate(item.date)}</Text>
             {SLOTS.map(slot =>
-              item.songs?.[slot] ? <SongCard key={slot} song={item.songs[slot]} slot={slot} /> : null
+              item.songs?.[slot] ? (
+                <SongCard
+                  key={slot}
+                  song={item.songs[slot]}
+                  slot={slot}
+                  postId={item.id}
+                  postOwnerUid={user.uid}
+                  reactions={item.reactions?.[slot] ?? {}}
+                  commentCount={commentCounts[`${item.id}_${slot}`] ?? 0}
+                />
+              ) : null
             )}
-            <Reactions
-              postId={item.id}
-              reactions={item.reactions ?? {}}
-              postOwnerUid={user.uid}
-              commentCount={commentCounts[item.id] ?? 0}
-              onComment={() => setActiveComments({ postId: item.id, postOwnerUid: user.uid })}
-            />
           </View>
         )}
         ListEmptyComponent={
@@ -173,12 +176,6 @@ export default function ProfileScreen() {
         }
       />
 
-      <CommentsSheet
-        visible={!!activeComments}
-        onClose={() => setActiveComments(null)}
-        postId={activeComments?.postId}
-        postOwnerUid={activeComments?.postOwnerUid}
-      />
       <Dialog
         visible={showLogout}
         title="Cerrar sesión"
