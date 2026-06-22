@@ -7,7 +7,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Modal } from 'react-native';
 import {
-  collection, addDoc, query, orderBy, onSnapshot,
+  collection, addDoc, query, where, orderBy, onSnapshot,
   serverTimestamp, doc, deleteDoc, getDoc,
 } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +16,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { notifyComment, notifyReply } from '@/lib/notifications';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 
-export default function CommentsSheet({ visible, onClose, postId, postOwnerUid }) {
+const SLOT_LABELS = { morning: 'Mañana', afternoon: 'Tarde', night: 'Noche' };
+
+export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, slot }) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [comments, setComments] = useState([]);
@@ -40,10 +42,11 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid }
   }, []);
 
   useEffect(() => {
-    if (!visible || !postId) return;
+    if (!visible || !postId || !slot) return;
     setLoading(true);
     const q = query(
       collection(db, 'posts', postId, 'comments'),
+      where('slot', '==', slot),
       orderBy('createdAt', 'asc')
     );
     const unsub = onSnapshot(q, snap => {
@@ -51,7 +54,7 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid }
       setLoading(false);
     });
     return unsub;
-  }, [visible, postId]);
+  }, [visible, postId, slot]);
 
   function cancelReply() {
     setReplyTo(null);
@@ -71,6 +74,7 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid }
         displayName: user.displayName ?? 'Usuario',
         avatar,
         text: trimmed,
+        slot,
         replyTo: replyTo?.id ?? null,
         replyToName: replyTo?.displayName ?? null,
         createdAt: serverTimestamp(),
@@ -159,7 +163,7 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid }
     ]}>
       {/* Header */}
       <View style={styles.sheetHeader}>
-        <Text style={styles.sheetTitle}>Comentarios</Text>
+        <Text style={styles.sheetTitle}>Comentarios · {SLOT_LABELS[slot] ?? ''}</Text>
         <TouchableOpacity onPress={onClose} hitSlop={8}>
           <Ionicons name="close" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>

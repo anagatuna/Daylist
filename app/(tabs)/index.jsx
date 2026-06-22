@@ -13,8 +13,6 @@ import { localDateStr } from '@/lib/date';
 import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
-import Reactions from '@/components/Reactions';
-import CommentsSheet from '@/components/CommentsSheet';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 
 const SLOTS_META = [
@@ -45,8 +43,7 @@ export default function HomeScreen() {
   const [friendPosts, setFriendPosts] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [commentCounts, setCommentCounts] = useState({}); // postId -> count
-  const [activeComments, setActiveComments] = useState(null); // { postId, postOwnerUid }
+  const [commentCounts, setCommentCounts] = useState({}); // postId_slot -> count
 
   async function loadData() {
     if (!user) return;
@@ -79,14 +76,20 @@ export default function HomeScreen() {
       }));
       setFriendPosts(enriched);
 
-      // Cargar conteo de comentarios
+      // Cargar conteo de comentarios por slot
       const counts = {};
-      await Promise.all(enriched.map(async p => {
-        try {
-          const snap = await getCountFromServer(collection(db, 'posts', p.id, 'comments'));
-          counts[p.id] = snap.data().count;
-        } catch { counts[p.id] = 0; }
-      }));
+      const allPosts = [...enriched];
+      if (mySnap.docs.length > 0) allPosts.push({ id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
+      const slots = ['morning', 'afternoon', 'night'];
+      await Promise.all(allPosts.flatMap(p =>
+        slots.map(async s => {
+          try {
+            const q2 = query(collection(db, 'posts', p.id, 'comments'), where('slot', '==', s));
+            const snap = await getCountFromServer(q2);
+            counts[`${p.id}_${s}`] = snap.data().count;
+          } catch { counts[`${p.id}_${s}`] = 0; }
+        })
+      ));
       setCommentCounts(counts);
     } else {
       setFriendPosts([]);
@@ -168,7 +171,17 @@ export default function HomeScreen() {
             <ActivityIndicator color={Colors.primary} />
           ) : myPost ? (
             SLOTS_META.map(({ key }) =>
-              myPost.songs?.[key] ? <SongCard key={key} song={myPost.songs[key]} slot={key} /> : null
+              myPost.songs?.[key] ? (
+                <SongCard
+                  key={key}
+                  song={myPost.songs[key]}
+                  slot={key}
+                  postId={myPost.id}
+                  postOwnerUid={user.uid}
+                  reactions={myPost.reactions?.[key] ?? {}}
+                  commentCount={commentCounts[`${myPost.id}_${key}`] ?? 0}
+                />
+              ) : null
             )
           ) : (
             <View style={styles.blocksGroup}>
@@ -204,26 +217,22 @@ export default function HomeScreen() {
                   <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
                 </TouchableOpacity>
                 {SLOTS_META.map(({ key }) =>
-                  post.songs?.[key] ? <SongCard key={key} song={post.songs[key]} slot={key} /> : null
+                  post.songs?.[key] ? (
+                    <SongCard
+                      key={key}
+                      song={post.songs[key]}
+                      slot={key}
+                      postId={post.id}
+                      postOwnerUid={post.uid}
+                      reactions={post.reactions?.[key] ?? {}}
+                      commentCount={commentCounts[`${post.id}_${key}`] ?? 0}
+                    />
+                  ) : null
                 )}
-                <Reactions
-                  postId={post.id}
-                  reactions={post.reactions ?? {}}
-                  postOwnerUid={post.uid}
-                  commentCount={commentCounts[post.id] ?? 0}
-                  onComment={() => setActiveComments({ postId: post.id, postOwnerUid: post.uid })}
-                />
               </View>
             ))}
           </View>
         )}
-
-        <CommentsSheet
-          visible={!!activeComments}
-          onClose={() => setActiveComments(null)}
-          postId={activeComments?.postId}
-          postOwnerUid={activeComments?.postOwnerUid}
-        />
 
         {!loading && friendPosts.length === 0 && filled > 0 && (
           <View style={styles.emptyFriends}>

@@ -8,8 +8,6 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { LinearGradient } from 'expo-linear-gradient';
 import SongCard from '@/components/SongCard';
-import Reactions from '@/components/Reactions';
-import CommentsSheet from '@/components/CommentsSheet';
 import Dialog from '@/components/Dialog';
 import AvatarPreview from '@/components/AvatarPreview';
 import StatsCard from '@/components/StatsCard';
@@ -35,7 +33,6 @@ export default function UserProfileScreen() {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [commentCounts, setCommentCounts] = useState({});
-  const [activeComments, setActiveComments] = useState(null);
   const [isFriend, setIsFriend] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showRemove, setShowRemove] = useState(false);
@@ -61,12 +58,15 @@ export default function UserProfileScreen() {
       const loadedPosts = postsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setPosts(loadedPosts);
       const counts = {};
-      await Promise.all(loadedPosts.map(async p => {
-        try {
-          const snap = await getCountFromServer(collection(db, 'posts', p.id, 'comments'));
-          counts[p.id] = snap.data().count;
-        } catch { counts[p.id] = 0; }
-      }));
+      await Promise.all(loadedPosts.flatMap(p =>
+        SLOTS.map(async s => {
+          try {
+            const q2 = query(collection(db, 'posts', p.id, 'comments'), where('slot', '==', s));
+            const snap = await getCountFromServer(q2);
+            counts[`${p.id}_${s}`] = snap.data().count;
+          } catch { counts[`${p.id}_${s}`] = 0; }
+        })
+      ));
       setCommentCounts(counts);
     } catch (e) {
       Alert.alert('Error cargando perfil', e.message);
@@ -144,26 +144,23 @@ export default function UserProfileScreen() {
           <View style={styles.postBlock}>
             <Text style={styles.postDate}>{formatPostDate(item.date)}</Text>
             {SLOTS.map(slot =>
-              item.songs?.[slot] ? <SongCard key={slot} song={item.songs[slot]} slot={slot} /> : null
+              item.songs?.[slot] ? (
+                <SongCard
+                  key={slot}
+                  song={item.songs[slot]}
+                  slot={slot}
+                  postId={item.id}
+                  postOwnerUid={uid}
+                  reactions={item.reactions?.[slot] ?? {}}
+                  commentCount={commentCounts[`${item.id}_${slot}`] ?? 0}
+                />
+              ) : null
             )}
-            <Reactions
-              postId={item.id}
-              reactions={item.reactions ?? {}}
-              postOwnerUid={uid}
-              commentCount={commentCounts[item.id] ?? 0}
-              onComment={() => setActiveComments({ postId: item.id, postOwnerUid: uid })}
-            />
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>Este usuario no ha publicado nada</Text>}
       />
 
-      <CommentsSheet
-        visible={!!activeComments}
-        onClose={() => setActiveComments(null)}
-        postId={activeComments?.postId}
-        postOwnerUid={activeComments?.postOwnerUid}
-      />
       <Dialog
         visible={showRemove}
         title="Quitar amigo"

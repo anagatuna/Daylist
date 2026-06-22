@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AudioPlayer from './AudioPlayer';
 import SheetModal from './SheetModal';
+import Reactions from './Reactions';
+import CommentsSheet from './CommentsSheet';
 import { getLyrics } from '@/lib/musixmatch';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 
@@ -23,10 +25,11 @@ function parseLyrics(text) {
   return text.split('\n\n').map(b => b.trim()).filter(Boolean);
 }
 
-export default function SongCard({ song, slot }) {
+export default function SongCard({ song, slot, postId, postOwnerUid, reactions, commentCount }) {
   const [showLyrics, setShowLyrics] = useState(false);
   const [lyrics, setLyrics] = useState(null);
   const [loadingLyrics, setLoadingLyrics] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const config = SLOT_CONFIG[slot] ?? { label: slot };
   const hasSnippet = song.lyricSnippet && (Array.isArray(song.lyricSnippet) ? song.lyricSnippet.length > 0 : true);
@@ -100,6 +103,25 @@ export default function SongCard({ song, slot }) {
           <Text style={styles.spotifyText}>Abrir en Spotify</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Reactions & Comments */}
+      {postId && (
+        <Reactions
+          postId={postId}
+          slot={slot}
+          reactions={reactions ?? {}}
+          postOwnerUid={postOwnerUid}
+          commentCount={commentCount ?? 0}
+          onComment={() => setShowComments(true)}
+        />
+      )}
+      <CommentsSheet
+        visible={showComments}
+        onClose={() => setShowComments(false)}
+        postId={postId}
+        postOwnerUid={postOwnerUid}
+        slot={slot}
+      />
 
       {/* Lyrics modal */}
       <SheetModal visible={showLyrics} onClose={() => setShowLyrics(false)} fullHeight>
