@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList,
+  View, Text, TextInput, TouchableOpacity, FlatList, Pressable, Modal,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
   Image, Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Modal } from 'react-native';
 import {
   collection, addDoc, query, where, orderBy, onSnapshot,
   serverTimestamp, doc, deleteDoc, getDoc,
@@ -231,15 +230,33 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
     </View>
   );
 
+  if (Platform.OS === 'ios') {
+    return (
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={onClose}
+      >
+        {content}
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}
-      statusBarTranslucent={Platform.OS === 'android'}
+      transparent
+      statusBarTranslucent
       onRequestClose={onClose}
     >
-      {content}
+      <View style={styles.androidRoot}>
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <View style={[styles.androidSheet, { backgroundColor: colors.bg }]}>
+          {content}
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -256,6 +273,17 @@ function formatTime(ts) {
 }
 
 const styles = StyleSheet.create({
+  androidRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  androidSheet: {
+    height: '92%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
+  },
   sheetIOS: {
     flex: 1,
     backgroundColor: Colors.bg,

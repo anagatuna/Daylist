@@ -153,7 +153,7 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
         open={showEmojiKeyboard}
         onClose={() => setShowEmojiKeyboard(false)}
         expandable={false}
-        defaultHeight="40%"
+        defaultHeight="55%"
         enableSearchBar
         enableRecentlyUsed
         categoryPosition="bottom"
@@ -177,13 +177,6 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
           },
           emoji: {
             selected: 'rgba(155,109,214,0.12)',
-          },
-        }}
-        styles={{
-          container: {
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
-            paddingBottom: 0,
           },
         }}
       />

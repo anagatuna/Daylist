@@ -57,7 +57,6 @@ function AndroidSheet({ visible, onClose, children, fullHeight }) {
               ? { paddingTop: 0, paddingBottom: insets.bottom || 16 }
               : { paddingTop: 8, paddingBottom: insets.bottom || 16 },
           ]}>
-            {!fullHeight && <View style={styles.handle} />}
             {children}
           </View>
         </KeyboardAvoidingView>
