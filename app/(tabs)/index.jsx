@@ -13,6 +13,7 @@ import { localDateStr } from '@/lib/date';
 import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
+import StreakBadge from '@/components/StreakBadge';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -45,12 +46,15 @@ export default function HomeScreen() {
   const [friendPosts, setFriendPosts] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [commentCounts, setCommentCounts] = useState({}); // postId_slot -> count
+  const [commentCounts, setCommentCounts] = useState({});
+  const [streak, setStreak] = useState(0);
 
   async function loadData() {
     if (!user) return;
     const userDoc = await getDoc(doc(db, 'users', user.uid));
-    const friends = userDoc.data()?.friends ?? [];
+    const userData = userDoc.data() ?? {};
+    const friends = userData.friends ?? [];
+    setStreak(userData.streak ?? 0);
 
     const myQ = query(
       collection(db, 'posts'),
@@ -133,6 +137,8 @@ export default function HomeScreen() {
     });
   }
 
+  if (!user) return null;
+
   const mySlots = buildSlots(myPost);
   const filled = mySlots.filter(s => s.track).length;
   const remaining = 3 - filled;
@@ -151,9 +157,12 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <Text style={[styles.logo, { color: colors.textPrimary }]}>daylist</Text>
-            <TouchableOpacity onPress={() => router.push('/post/create')} style={[styles.addBtn, { backgroundColor: colors.card }]}>
-              <Ionicons name="add" size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <StreakBadge streak={streak} size="sm" showLabel={false} />
+              <TouchableOpacity onPress={() => router.push('/post/create')} style={[styles.addBtn, { backgroundColor: colors.card }]}>
+                <Ionicons name="add" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
           </View>
           <Text style={[styles.dateTitle, { color: colors.textMuted }]}>{dayName}, {dayNum} de {month}</Text>
           <View style={styles.statusRow}>

@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Animated, StatusBar,
+  Animated, StatusBar, Pressable,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import Dialog from '@/components/Dialog';
@@ -19,6 +20,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [dialog, setDialog] = useState({ visible: false, message: '' });
 
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -100,8 +102,7 @@ export default function RegisterScreen() {
             {[
               { label: 'Nombre de usuario', value: name,     setter: setName,     placeholder: 'Tu nombre',       secure: false },
               { label: 'Correo',            value: email,    setter: setEmail,    placeholder: 'tu@correo.com',   secure: false, keyboard: 'email-address' },
-              { label: 'Contraseña',        value: password, setter: setPassword, placeholder: '••••••••',        secure: true },
-            ].map(({ label, value, setter, placeholder, secure, keyboard }) => (
+            ].map(({ label, value, setter, placeholder, keyboard }) => (
               <View key={label} style={styles.inputWrapper}>
                 <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{label}</Text>
                 <TextInput
@@ -110,12 +111,29 @@ export default function RegisterScreen() {
                   placeholderTextColor={colors.textMuted}
                   autoCapitalize="none"
                   keyboardType={keyboard ?? 'default'}
-                  secureTextEntry={secure}
                   value={value}
                   onChangeText={setter}
                 />
               </View>
             ))}
+
+            <View style={styles.inputWrapper}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Contraseña</Text>
+              <View style={[styles.passwordRow, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.passwordInput, { color: colors.textPrimary }]}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <Pressable onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn} hitSlop={8}>
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textMuted} />
+                </Pressable>
+              </View>
+            </View>
 
             <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85} style={{ marginTop: 4 }}>
               <LinearGradient colors={Colors.gradientPrimary} style={styles.btn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
@@ -181,6 +199,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.bg,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    fontSize: 15,
+  },
+  eyeBtn: {
+    paddingHorizontal: 12,
   },
   btn: { borderRadius: Radius.pill, padding: 16, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16, letterSpacing: 0.2 },

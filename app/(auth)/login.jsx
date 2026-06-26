@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Animated, StatusBar,
+  Animated, StatusBar, Pressable,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import Dialog from '@/components/Dialog';
@@ -17,6 +18,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [dialog, setDialog] = useState({ visible: false, message: '' });
 
   const fadeAnim   = useRef(new Animated.Value(0)).current;
@@ -110,14 +112,19 @@ export default function LoginScreen() {
 
             <View style={styles.inputWrapper}>
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Contraseña</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.bg, color: colors.textPrimary, borderColor: colors.border }]}
-                placeholder="••••••••"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
+              <View style={[styles.passwordRow, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.passwordInput, { color: colors.textPrimary }]}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <Pressable onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn} hitSlop={8}>
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textMuted} />
+                </Pressable>
+              </View>
             </View>
 
             <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85} style={{ marginTop: 4 }}>
@@ -191,6 +198,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.bg,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    fontSize: 15,
+  },
+  eyeBtn: {
+    paddingHorizontal: 12,
   },
   btn: {
     borderRadius: Radius.pill,
