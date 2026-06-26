@@ -19,7 +19,6 @@ import Dialog from '@/components/Dialog';
 import ReminderModal, { REMINDER_KEY, formatReminderTime } from '@/components/ReminderModal';
 import StatsCard from '@/components/StatsCard';
 import StreakBadge from '@/components/StreakBadge';
-import { cancelDailyReminder, cancelStreakReminder } from '@/lib/notifications';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -99,9 +98,10 @@ export default function ProfileScreen() {
   async function doLogout() {
     try {
       await updateDoc(doc(db, 'users', user.uid), { expoPushToken: deleteField() });
-      await cancelDailyReminder();
-      await cancelStreakReminder();
-      await AsyncStorage.clear();
+      const allKeys = await AsyncStorage.getAllKeys();
+      const keepKeys = ['@daylist_theme', 'reminder_config'];
+      const toRemove = allKeys.filter(k => !keepKeys.includes(k));
+      if (toRemove.length) await AsyncStorage.multiRemove(toRemove);
     } catch {}
     signOut(auth);
   }

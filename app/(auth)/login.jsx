@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Animated, StatusBar, Pressable,
+  Animated, StatusBar, Pressable, Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
@@ -19,6 +19,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [showVerify, setShowVerify] = useState(false);
   const [dialog, setDialog] = useState({ visible: false, message: '' });
 
   const fadeAnim   = useRef(new Animated.Value(0)).current;
@@ -64,12 +66,31 @@ export default function LoginScreen() {
     if (!email || !password) return showError('Completa todos los campos');
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const { user } = await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (!user.emailVerified) {
+        await sendEmailVerification(user);
+        await auth.signOut();
+        setShowVerify(true);
+        return;
+      }
     } catch (e) {
       const msg = friendlyAuthError(e.code);
       showError(msg);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword() {
+    const trimmed = email.trim();
+    if (!trimmed) return showError('Escribe tu correo para recuperar tu contraseña.');
+    try {
+      await sendPasswordResetEmail(auth, trimmed);
+      setResetSent(true);
+    } catch (e) {
+      if (e.code === 'auth/invalid-email') return showError('El correo no tiene un formato válido.');
+      if (e.code === 'auth/user-not-found') return showError('No existe una cuenta con ese correo.');
+      showError('Error enviando el correo. Intenta de nuevo.');
     }
   }
 
@@ -81,6 +102,7 @@ export default function LoginScreen() {
       <View style={styles.orb1} />
       <View style={styles.orb2} />
 
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
         style={styles.inner}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -127,6 +149,10 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotBtn}>
+              <Text style={[styles.forgotText, { color: colors.primary }]}>¿Olvidaste tu contraseña?</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85} style={{ marginTop: 4 }}>
               <LinearGradient colors={Colors.gradientPrimary} style={styles.btn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 {loading
@@ -146,12 +172,27 @@ export default function LoginScreen() {
           </Link>
         </Animated.View>
       </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
 
       <Dialog
         visible={dialog.visible}
         title="Aviso"
         message={dialog.message}
         onClose={() => setDialog({ visible: false, message: '' })}
+        buttons={[{ text: 'Entendido', style: 'primary' }]}
+      />
+      <Dialog
+        visible={resetSent}
+        title="Correo enviado"
+        message={`Se envió un enlace para restablecer tu contraseña a ${email.trim()}. Revisa tu bandeja de entrada.`}
+        onClose={() => setResetSent(false)}
+        buttons={[{ text: 'Entendido', style: 'primary' }]}
+      />
+      <Dialog
+        visible={showVerify}
+        title="Verifica tu correo"
+        message={`Tu correo aún no ha sido verificado. Se envió un nuevo enlace a ${email.trim()}. Ábrelo y vuelve a iniciar sesión.`}
+        onClose={() => setShowVerify(false)}
         buttons={[{ text: 'Entendido', style: 'primary' }]}
       />
     </View>
@@ -222,6 +263,8 @@ const styles = StyleSheet.create({
   },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16, letterSpacing: 0.2 },
 
+  forgotBtn:  { alignSelf: 'flex-start' },
+  forgotText: { fontSize: 13, fontWeight: '600' },
   linkBtn:    { alignItems: 'center', padding: 10 },
   linkText:   { color: Colors.textMuted, fontSize: 14 },
   linkAccent: { color: Colors.primary, fontWeight: '700' },

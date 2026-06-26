@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Animated, StatusBar, Pressable,
+  Animated, StatusBar, Pressable, Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,11 +16,13 @@ import Dialog from '@/components/Dialog';
 
 export default function RegisterScreen() {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
   const [dialog, setDialog] = useState({ visible: false, message: '' });
 
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -75,6 +77,9 @@ export default function RegisterScreen() {
         friends: [],
         friendRequests: [],
       });
+      await sendEmailVerification(user);
+      await auth.signOut();
+      setVerificationSent(true);
     } catch (e) {
       showError(friendlyAuthError(e.code));
     } finally {
@@ -88,6 +93,7 @@ export default function RegisterScreen() {
       <View style={styles.orb1} />
       <View style={styles.orb2} />
 
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <KeyboardAvoidingView
         style={styles.inner}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -154,6 +160,7 @@ export default function RegisterScreen() {
           </Link>
         </Animated.View>
       </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
 
       <Dialog
         visible={dialog.visible}
@@ -161,6 +168,13 @@ export default function RegisterScreen() {
         message={dialog.message}
         onClose={() => setDialog({ visible: false, message: '' })}
         buttons={[{ text: 'Entendido', style: 'primary' }]}
+      />
+      <Dialog
+        visible={verificationSent}
+        title="Verifica tu correo"
+        message={`Se envió un enlace de verificación a ${email.trim()}. Abre el enlace y luego inicia sesión.`}
+        onClose={() => { setVerificationSent(false); router.replace('/(auth)/login'); }}
+        buttons={[{ text: 'Ir a iniciar sesión', style: 'primary' }]}
       />
     </View>
   );
