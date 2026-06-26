@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signOut } from 'firebase/auth';
-import { collection, query, where, orderBy, getDocs, doc, getDoc, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc, getCountFromServer, updateDoc, deleteField } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import AvatarPreview from '@/components/AvatarPreview';
@@ -18,6 +18,7 @@ import SongCard from '@/components/SongCard';
 import Dialog from '@/components/Dialog';
 import ReminderModal, { REMINDER_KEY, formatReminderTime } from '@/components/ReminderModal';
 import StatsCard from '@/components/StatsCard';
+import StreakBadge from '@/components/StreakBadge';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -40,6 +41,8 @@ export default function ProfileScreen() {
   const [friendCount, setFriendCount] = useState(0);
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showLogout, setShowLogout] = useState(false);
   const [showReminder, setShowReminder] = useState(false);
@@ -70,6 +73,8 @@ export default function ProfileScreen() {
     setFriendCount((data.friends ?? []).length);
     setBio(data.bio ?? '');
     setAvatar(data.avatar ?? null);
+    setStreak(data.streak ?? 0);
+    setLongestStreak(data.longestStreak ?? 0);
     const loadedPosts = postsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     setPosts(loadedPosts);
     const counts = {};
@@ -88,6 +93,17 @@ export default function ProfileScreen() {
 
   function handleLogout() {
     setShowLogout(true);
+  }
+
+  async function doLogout() {
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { expoPushToken: deleteField() });
+      const allKeys = await AsyncStorage.getAllKeys();
+      const keepKeys = ['@daylist_theme', 'reminder_config'];
+      const toRemove = allKeys.filter(k => !keepKeys.includes(k));
+      if (toRemove.length) await AsyncStorage.multiRemove(toRemove);
+    } catch {}
+    signOut(auth);
   }
 
   if (!user) return null;
@@ -132,11 +148,25 @@ export default function ProfileScreen() {
                   <Text style={[styles.statLabel, { color: colors.textMuted }]}>días</Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+                <View style={styles.stat}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Text style={{ fontSize: 16 }}>🔥</Text>
+                    <Text style={[styles.statNum, { color: '#FF9500' }]}>{streak}</Text>
+                  </View>
+                  <Text style={[styles.statLabel, { color: colors.textMuted }]}>racha</Text>
+                </View>
+                <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                 <TouchableOpacity style={styles.stat} onPress={() => router.push('/(tabs)/friends')}>
                   <Text style={[styles.statNum, { color: colors.textPrimary }]}>{friendCount}</Text>
                   <Text style={[styles.statLabel, { color: colors.primary }]}>amigos</Text>
                 </TouchableOpacity>
               </View>
+
+              {longestStreak > 0 && (
+                <Text style={[styles.longestStreak, { color: colors.textMuted }]}>
+                  Mejor racha: {longestStreak} {longestStreak === 1 ? 'día' : 'días'}
+                </Text>
+              )}
 
               {/* Theme selector */}
               <View style={[styles.themeRow, { borderTopColor: colors.border }]}>
@@ -203,7 +233,7 @@ export default function ProfileScreen() {
         onClose={() => setShowLogout(false)}
         buttons={[
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Salir', style: 'destructive', onPress: () => signOut(auth) },
+          { text: 'Salir', style: 'destructive', onPress: doLogout },
         ]}
       />
       <ReminderModal
@@ -280,6 +310,7 @@ const styles = StyleSheet.create({
   statNum:     { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
   statLabel:   { color: Colors.textMuted, fontSize: 11, marginTop: 1 },
   statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: Colors.border },
+  longestStreak: { fontSize: 12, marginTop: 10, fontWeight: '500' },
 
   themeRow: {
     flexDirection: 'row', justifyContent: 'center', gap: 8,

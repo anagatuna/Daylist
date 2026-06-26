@@ -121,6 +121,18 @@ export default function UserProfileScreen() {
               <Text style={[styles.name, { color: colors.textPrimary }]}>{profile?.displayName}</Text>
               {profile?.bio ? <Text style={[styles.bio, { color: colors.textSecondary }]}>{profile.bio}</Text> : null}
               <Text style={[styles.postCount, { color: colors.textMuted }]}>{posts.length} días publicados</Text>
+              {(profile?.streak ?? 0) > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                  <Text style={{ fontSize: 16 }}>🔥</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#FF9500' }}>{profile.streak}</Text>
+                  <Text style={{ fontSize: 13, color: colors.textMuted }}>{profile.streak === 1 ? 'día de racha' : 'días de racha'}</Text>
+                </View>
+              )}
+              {(profile?.longestStreak ?? 0) > 0 && (
+                <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, fontWeight: '500' }}>
+                  Mejor racha: {profile.longestStreak} {profile.longestStreak === 1 ? 'día' : 'días'}
+                </Text>
+              )}
 
               {uid !== me && (
                 isFriend ? (

@@ -242,7 +242,16 @@ export default function FriendsScreen() {
     return (
       <TouchableOpacity style={[styles.userRow, { backgroundColor: colors.card }]} onPress={() => router.push(`/user/${item.id}`)} activeOpacity={0.7}>
         <Avatar item={item} />
-        <Text style={[styles.userName, { flex: 1, color: colors.textPrimary }]}>{item.displayName}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.userName, { color: colors.textPrimary }]}>{item.displayName}</Text>
+          {(item.streak ?? 0) > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+              <Text style={{ fontSize: 11 }}>🔥</Text>
+              <Text style={{ fontSize: 12, color: '#FF9500', fontWeight: '700' }}>{item.streak}</Text>
+              <Text style={{ fontSize: 11, color: colors.textMuted }}>{item.streak === 1 ? 'día' : 'días'}</Text>
+            </View>
+          )}
+        </View>
         {right}
       </TouchableOpacity>
     );
@@ -478,8 +487,8 @@ export default function FriendsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
 
-  tabsScroll: { flexGrow: 0, backgroundColor: Colors.bg },
-  tabsRow:    { flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 10, gap: 6 },
+  tabsScroll: { flexGrow: 0, backgroundColor: Colors.bg, zIndex: 1, minHeight: 52 },
+  tabsRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, gap: 6 },
   tab:          { paddingVertical: 8, paddingHorizontal: 16, alignItems: 'center', borderRadius: 10 },
   tabActive:    { backgroundColor: Colors.surface, ...Shadow.sm },
   tabText:      { color: Colors.textMuted, fontSize: 13, fontWeight: '500' },

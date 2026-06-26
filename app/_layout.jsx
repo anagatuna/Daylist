@@ -3,7 +3,8 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
-import { registerPushToken } from '@/lib/notifications';
+import { registerPushToken, scheduleStreakReminder } from '@/lib/notifications';
+import { runStreakMigration } from '@/lib/migrateStreaks';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -46,6 +47,8 @@ function RootNav() {
     if (!user) return;
 
     registerPushToken(user.uid).catch(() => {});
+    runStreakMigration().catch(() => {});
+    scheduleStreakReminder().catch(() => {});
 
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {});
 

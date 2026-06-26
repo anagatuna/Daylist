@@ -11,11 +11,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { searchTracks, serializeTrack } from '@/lib/itunes';
-import { notifyFriends } from '@/lib/notifications';
+import { notifyFriends, cancelStreakReminder } from '@/lib/notifications';
 import { localDateStr } from '@/lib/date';
 import { getLyrics } from '@/lib/musixmatch';
 import AudioPlayer from '@/components/AudioPlayer';
 import SheetModal from '@/components/SheetModal';
+import StreakCelebration from '@/components/StreakCelebration';
+import { syncStreakToProfile } from '@/lib/streak';
 import { Colors, Radius } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -41,14 +43,8 @@ export default function CreatePostScreen() {
   const [loadingLyrics, setLoadingLyrics] = useState(false);
   const [saving, setSaving] = useState(false);
   const [alreadyPosted, setAlreadyPosted] = useState(false);
-  const [canEdit, setCanEdit] = useState(new Date().getHours() < 23);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCanEdit(new Date().getHours() < 23);
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const [showStreak, setShowStreak] = useState(false);
+  const [streakCount, setStreakCount] = useState(0);
   // Cargar post de hoy si ya existe
   useEffect(() => {
     async function loadToday() {
@@ -212,8 +208,16 @@ export default function CreatePostScreen() {
         await AsyncStorage.setItem(notifKey, JSON.stringify(updated));
       }
 
-      if (songData.morning && songData.afternoon && songData.night) {
+      const justCompleted = songData.morning && songData.afternoon && songData.night;
+      if (justCompleted) {
         setAlreadyPosted(true);
+        cancelStreakReminder().catch(() => {});
+        try {
+          const { current } = await syncStreakToProfile(user.uid);
+          setStreakCount(current);
+          setShowStreak(true);
+          return;
+        } catch {}
       }
       router.replace('/(tabs)');
     } catch (e) {
@@ -221,21 +225,6 @@ export default function CreatePostScreen() {
     } finally {
       setSaving(false);
     }
-  }
-
-  if (alreadyPosted && !canEdit) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', gap: 12, padding: 32, backgroundColor: colors.bg }]}>
-        <Ionicons name="checkmark-circle" size={64} color={Colors.primary} />
-        <Text style={[styles.title, { textAlign: 'center', marginBottom: 0, color: colors.textPrimary }]}>¡Ya completaste tu Daylist de hoy!</Text>
-        <Text style={{ color: colors.textMuted, fontSize: 15, textAlign: 'center' }}>Vuelve mañana para agregar nuevas canciones.</Text>
-        <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ marginTop: 16 }}>
-          <LinearGradient colors={Colors.gradientPrimary} style={[styles.publishBtn, { paddingHorizontal: 32 }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-            <Text style={styles.publishBtnText}>Volver al inicio</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    );
   }
 
   if (activeSlot) {
@@ -302,10 +291,10 @@ export default function CreatePostScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {alreadyPosted && canEdit && (
+        {alreadyPosted && (
           <View style={styles.editBanner}>
             <Ionicons name="create-outline" size={15} color={Colors.primary} />
-            <Text style={styles.editBannerText}>Editando tu Daylist de hoy · hasta las 11pm</Text>
+            <Text style={styles.editBannerText}>Editando tu Daylist de hoy</Text>
           </View>
         )}
         <Text style={[styles.title, { color: colors.textPrimary }]}>¿Qué canciones definen tu día?</Text>
@@ -404,6 +393,12 @@ export default function CreatePostScreen() {
           </TouchableOpacity>
         </View>
       </SheetModal>
+
+      <StreakCelebration
+        visible={showStreak}
+        streak={streakCount}
+        onClose={() => { setShowStreak(false); router.replace('/(tabs)'); }}
+      />
 
       {/* Lyric picker modal */}
       <SheetModal visible={!!lyricModal} onClose={() => setLyricModal(null)} fullHeight>
