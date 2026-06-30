@@ -124,7 +124,7 @@ export default function UserProfileScreen() {
               {(profile?.streak ?? 0) > 0 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
                   <Text style={{ fontSize: 16 }}>🔥</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#FF9500' }}>{profile.streak}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: colors.streak }}>{profile.streak}</Text>
                   <Text style={{ fontSize: 13, color: colors.textMuted }}>{profile.streak === 1 ? 'día de racha' : 'días de racha'}</Text>
                 </View>
               )}

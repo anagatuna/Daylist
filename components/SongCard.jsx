@@ -5,6 +5,7 @@ import {
   ImageBackground, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AudioPlayer from './AudioPlayer';
@@ -60,7 +61,10 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
   const stanzas = parseLyrics(lyrics);
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card }]}>
+    <View style={[styles.cardShadowWrap, { shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacity }]}>
+    <View style={[styles.card, { borderColor: colors.cardGlass.border }]}>
+      <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, styles.cardBg]} />
+      <View style={[StyleSheet.absoluteFill, styles.cardBg, { backgroundColor: colors.cardGlass.overlay }]} />
       {/* Slot label */}
       <Text style={[styles.slotLabel, { color: colors.primary }]}>{config.label.toUpperCase()}</Text>
 
@@ -101,8 +105,8 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.spotifyBtn} onPress={openSpotify}>
-          <MaterialCommunityIcons name="spotify" size={15} color="#1DB954" />
-          <Text style={styles.spotifyText}>Abrir en Spotify</Text>
+          <MaterialCommunityIcons name="spotify" size={15} color={colors.spotify} />
+          <Text style={[styles.spotifyText, { color: colors.spotify }]}>Abrir en Spotify</Text>
         </TouchableOpacity>
       </View>
 
@@ -182,16 +186,25 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
         </View>
       </SheetModal>
     </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: Radius.lg,
-    padding: 16,
-    marginBottom: 12,
+  cardShadowWrap: {
+    marginBottom: 14,
+    borderRadius: Radius.xl,
     ...Shadow.md,
+    shadowRadius: 16,
+  },
+  card: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    padding: 18,
+    overflow: 'hidden',
+  },
+  cardBg: {
+    borderRadius: Radius.xl,
   },
   slotLabel: {
     fontSize: 10,

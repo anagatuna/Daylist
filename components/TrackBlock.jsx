@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import {
   Image, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
@@ -30,7 +31,10 @@ function FilledBlock({ slot, onPlay }) {
   const accent = ACCENT[slot.timeOfDay] ?? ACCENT.morning;
 
   return (
-    <View style={[styles.filledContainer, { backgroundColor: colors.card }]}>
+    <View style={[styles.shadowWrap, { shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacity }]}>
+    <View style={[styles.filledContainer, { borderColor: colors.cardGlass.border }]}>
+      <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, styles.blockBg]} />
+      <View style={[StyleSheet.absoluteFill, styles.blockBg, { backgroundColor: colors.cardGlass.overlay }]} />
       <LinearGradient
         colors={accent.bar}
         style={styles.accentBar}
@@ -63,6 +67,7 @@ function FilledBlock({ slot, onPlay }) {
         <View style={styles.playTriangle} />
       </TouchableOpacity>
     </View>
+    </View>
   );
 }
 
@@ -71,11 +76,14 @@ function EmptyBlock({ slot, onAdd }) {
   const accent = ACCENT[slot.timeOfDay] ?? ACCENT.morning;
 
   return (
+    <View style={[styles.shadowWrapSm, { shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacitySm }]}>
     <TouchableOpacity
-      style={[styles.emptyContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.emptyContainer, { borderColor: colors.cardGlass.border }]}
       onPress={() => onAdd(slot.timeOfDay)}
       activeOpacity={0.6}
     >
+      <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, styles.blockBg]} />
+      <View style={[StyleSheet.absoluteFill, styles.blockBg, { backgroundColor: colors.cardGlass.overlay }]} />
       <LinearGradient
         colors={[accent.bar[0] + '30', accent.bar[1] + '08']}
         style={styles.accentBar}
@@ -92,6 +100,7 @@ function EmptyBlock({ slot, onAdd }) {
         <Text style={[styles.addButtonIcon, { color: colors.primary }]}>+</Text>
       </View>
     </TouchableOpacity>
+    </View>
   );
 }
 
@@ -101,17 +110,29 @@ export function TrackBlock({ slot, onAdd, onPlay }) {
 }
 
 const styles = StyleSheet.create({
+  shadowWrap: {
+    borderRadius: Radius.lg,
+    ...Shadow.md,
+    shadowRadius: 14,
+  },
+  shadowWrapSm: {
+    borderRadius: Radius.lg,
+    ...Shadow.sm,
+    shadowRadius: 10,
+  },
+  blockBg: {
+    borderRadius: Radius.lg,
+  },
   filledContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card,
     borderRadius: Radius.lg,
+    borderWidth: 1,
     paddingVertical: 14,
     paddingRight: 14,
     paddingLeft: 20,
     gap: 12,
     overflow: 'hidden',
-    ...Shadow.md,
   },
   accentBar: {
     position: 'absolute',
@@ -199,16 +220,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.card,
     borderRadius: Radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
     borderStyle: 'dashed',
     paddingVertical: 20,
     paddingRight: 14,
     paddingLeft: 20,
     overflow: 'hidden',
-    ...Shadow.sm,
   },
   emptyLeft: { flex: 1, gap: 4 },
   emptyLabel: {

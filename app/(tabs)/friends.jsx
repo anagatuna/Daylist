@@ -4,7 +4,8 @@ import {
   TextInput, ActivityIndicator, Alert, Image, StatusBar, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,6 +29,7 @@ export default function FriendsScreen() {
   const uid = user?.uid;
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [tab, setTab] = useState('friends');
   const [friends, setFriends] = useState([]);
@@ -230,9 +232,11 @@ export default function FriendsScreen() {
   }
 
   function Avatar({ item, size = 42 }) {
-    if (item.avatar) return <Image source={{ uri: item.avatar }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+    if (item.avatar) return (
+      <Image source={{ uri: item.avatar }} style={{ width: size, height: size, borderRadius: size / 2 }} />
+    );
     return (
-      <LinearGradient colors={Colors.gradientPrimary} style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <LinearGradient colors={colors.gradientPrimary} style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.4 }}>{item.displayName?.[0]?.toUpperCase()}</Text>
       </LinearGradient>
     );
@@ -240,55 +244,64 @@ export default function FriendsScreen() {
 
   function UserRow({ item, right }) {
     return (
-      <TouchableOpacity style={[styles.userRow, { backgroundColor: colors.card }]} onPress={() => router.push(`/user/${item.id}`)} activeOpacity={0.7}>
-        <Avatar item={item} />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.userName, { color: colors.textPrimary }]}>{item.displayName}</Text>
-          {(item.streak ?? 0) > 0 && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
-              <Text style={{ fontSize: 11 }}>🔥</Text>
-              <Text style={{ fontSize: 12, color: '#FF9500', fontWeight: '700' }}>{item.streak}</Text>
-              <Text style={{ fontSize: 11, color: colors.textMuted }}>{item.streak === 1 ? 'día' : 'días'}</Text>
-            </View>
-          )}
-        </View>
-        {right}
-      </TouchableOpacity>
+      <View style={[styles.cardShadow, { shadowColor: colors.primary }]}>
+        <TouchableOpacity style={[styles.userRow, { borderColor: colors.cardGlass.border }]} onPress={() => router.push(`/user/${item.id}`)} activeOpacity={0.7}>
+          <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
+          <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg, backgroundColor: colors.cardGlass.overlay }]} />
+          <Avatar item={item} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.userName, { color: colors.textPrimary }]}>{item.displayName}</Text>
+            {(item.streak ?? 0) > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                <Text style={{ fontSize: 11 }}>🔥</Text>
+                <Text style={{ fontSize: 12, color: colors.streak, fontWeight: '700' }}>{item.streak}</Text>
+                <Text style={{ fontSize: 11, color: colors.textMuted }}>{item.streak === 1 ? 'día' : 'días'}</Text>
+              </View>
+            )}
+          </View>
+          {right}
+        </TouchableOpacity>
+      </View>
     );
   }
 
   function ActivityItem({ item }) {
-    if (item.type === 'reaction') {
-      return (
-        <TouchableOpacity style={[styles.activityRow, { backgroundColor: colors.card }]} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
-          <View style={styles.activityAvatarWrap}>
-            <Avatar item={item} size={40} />
-            <View style={[styles.activityEmoji, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={{ fontSize: 13 }}>{item.emoji}</Text>
-            </View>
+    const content = item.type === 'reaction' ? (
+      <>
+        <View style={styles.activityAvatarWrap}>
+          <Avatar item={item} size={40} />
+          <View style={[styles.activityEmoji, { backgroundColor: colors.cardGlass.overlay, borderColor: colors.border }]}>
+            <Text style={{ fontSize: 13 }}>{item.emoji}</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.activityText, { color: colors.textPrimary }]}>
-              <Text style={styles.activityName}>{item.displayName}</Text>
-              {` reaccionó a tu ${SLOT_LABELS[item.slot] ?? 'publicación'}`}
-            </Text>
-            <Text style={[styles.activityDate, { color: colors.textMuted }]}>{formatDate(item.postDate)}</Text>
-          </View>
-        </TouchableOpacity>
-      );
-    }
-    const slotText = item.slots.map(s => SLOT_LABELS[s] ?? s).join(', ');
-    return (
-      <TouchableOpacity style={[styles.activityRow, { backgroundColor: colors.card }]} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
-        <Avatar item={item} size={40} />
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.activityText, { color: colors.textPrimary }]}>
-            <Text style={styles.activityName}>{item.displayName}</Text>
-            {` publicó su canción de la ${slotText}`}
+            <Text style={[styles.activityName, { color: colors.primary }]}>{item.displayName}</Text>
+            {` reaccionó a tu ${SLOT_LABELS[item.slot] ?? 'publicación'}`}
           </Text>
           <Text style={[styles.activityDate, { color: colors.textMuted }]}>{formatDate(item.postDate)}</Text>
         </View>
-      </TouchableOpacity>
+      </>
+    ) : (
+      <>
+        <Avatar item={item} size={40} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.activityText, { color: colors.textPrimary }]}>
+            <Text style={[styles.activityName, { color: colors.primary }]}>{item.displayName}</Text>
+            {` publicó su canción de la ${item.slots.map(s => SLOT_LABELS[s] ?? s).join(', ')}`}
+          </Text>
+          <Text style={[styles.activityDate, { color: colors.textMuted }]}>{formatDate(item.postDate)}</Text>
+        </View>
+      </>
+    );
+    return (
+      <View style={[styles.cardShadow, { shadowColor: colors.primary }]}>
+        <TouchableOpacity style={[styles.activityRow, { borderColor: colors.cardGlass.border }]} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
+          <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
+          <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg, backgroundColor: colors.cardGlass.overlay }]} />
+          {content}
+        </TouchableOpacity>
+      </View>
     );
   }
 
@@ -323,23 +336,30 @@ export default function FriendsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={[]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabsScroll, { backgroundColor: colors.bg }]} contentContainerStyle={styles.tabsRow}>
-        {TABS.map(t => (
-          <TouchableOpacity
-            key={t.key}
-            style={[styles.tab, tab === t.key && [styles.tabActive, { backgroundColor: colors.surface }]]}
-            onPress={() => handleTabPress(t.key)}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Text style={[styles.tabText, { color: colors.textMuted }, tab === t.key && [styles.tabTextActive, { color: colors.textPrimary }]]}>{t.label}</Text>
-              {t.dot && tab !== t.key && <View style={styles.unreadDot} />}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
+          {TABS.map(t => (
+            <TouchableOpacity key={t.key} onPress={() => handleTabPress(t.key)} activeOpacity={0.7}>
+              {tab === t.key ? (
+                <LinearGradient colors={colors.gradientPrimary} style={styles.tabActive} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Text style={styles.tabTextActive}>{t.label}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={[styles.tab, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)' }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <Text style={[styles.tabText, { color: colors.textMuted }]}>{t.label}</Text>
+                    {t.dot && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
+                  </View>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
@@ -408,7 +428,9 @@ export default function FriendsScreen() {
       ) : (
         <View style={{ flex: 1 }}>
           <View style={styles.searchRow}>
-            <View style={[styles.searchInputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.searchInputWrapper, { borderColor: colors.cardGlass.border, shadowColor: colors.primary }]}>
+              <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.md }]} />
+              <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.md, backgroundColor: colors.cardGlass.overlay }]} />
               <TextInput
                 style={[styles.searchInput, { color: colors.textPrimary }]}
                 placeholder="Buscar por nombre..."
@@ -487,31 +509,40 @@ export default function FriendsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
 
-  tabsScroll: { flexGrow: 0, backgroundColor: Colors.bg, zIndex: 1, minHeight: 52 },
-  tabsRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, gap: 6 },
-  tab:          { paddingVertical: 8, paddingHorizontal: 16, alignItems: 'center', borderRadius: 10 },
-  tabActive:    { backgroundColor: Colors.surface, ...Shadow.sm },
-  tabText:      { color: Colors.textMuted, fontSize: 13, fontWeight: '500' },
-  tabTextActive: { color: Colors.textPrimary, fontWeight: '600' },
-  unreadDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primary },
+  header: {
+    paddingBottom: 8,
+    marginHorizontal: -0,
+  },
+  tabsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 12, gap: 6 },
+  tab:       { paddingVertical: 8, paddingHorizontal: 16, borderRadius: Radius.pill },
+  tabActive: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: Radius.pill },
+  tabText:      { fontSize: 13, fontWeight: '500' },
+  tabTextActive: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  unreadDot: { width: 6, height: 6, borderRadius: 3 },
 
-  list: { padding: 16, gap: 8 },
+  list: { padding: 16, paddingBottom: 110, gap: 10 },
+
+  cardShadow: {
+    borderRadius: Radius.lg,
+    ...Shadow.sm,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+  },
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.card,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
     padding: 14,
-    ...Shadow.sm,
+    overflow: 'hidden',
   },
-  userName: { color: Colors.textPrimary, fontSize: 15, fontWeight: '500' },
+  userName: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600' },
 
   acceptBtn:     { borderRadius: Radius.pill, paddingHorizontal: 14, paddingVertical: 7 },
   acceptBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
   rejectBtn: {
     width: 34, height: 34, borderRadius: 17,
-    backgroundColor: Colors.bg,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
   },
@@ -523,17 +554,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.card,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
     padding: 14,
-    ...Shadow.sm,
+    overflow: 'hidden',
   },
   activityAvatarWrap: { position: 'relative' },
   activityEmoji: {
     position: 'absolute', bottom: -2, right: -4,
-    backgroundColor: Colors.surface,
     borderRadius: 10, padding: 2,
-    borderWidth: 1, borderColor: Colors.borderLight,
+    borderWidth: 1,
   },
   activityText: { color: Colors.textPrimary, fontSize: 13, lineHeight: 18 },
   activityName: { fontWeight: '700' },
@@ -542,23 +572,25 @@ const styles = StyleSheet.create({
   empty:     { alignItems: 'center', marginTop: 50, gap: 10 },
   emptyText: { color: Colors.textMuted, textAlign: 'center', fontSize: 14 },
 
-  searchRow:         { flexDirection: 'row', gap: 10, padding: 16 },
+  searchRow: { flexDirection: 'row', gap: 10, padding: 16, paddingTop: 8 },
   searchInputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card,
     borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
+    borderWidth: 1,
+    overflow: 'hidden',
     ...Shadow.sm,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
   },
   searchInput: {
     flex: 1,
     padding: 13,
     color: Colors.textPrimary,
     fontSize: 15,
+    zIndex: 1,
   },
-  clearBtn: { paddingRight: 12 },
+  clearBtn: { paddingRight: 12, zIndex: 1 },
   searchBtn: { borderRadius: Radius.md, padding: 13, justifyContent: 'center', alignItems: 'center', width: 48 },
 });

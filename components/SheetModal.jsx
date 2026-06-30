@@ -1,5 +1,6 @@
 import { Modal, View, StyleSheet, Platform, Pressable, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -21,7 +22,8 @@ export default function SheetModal({ visible, onClose, children, fullHeight = fa
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={onClose}>
-        <View style={{ flex: 1, backgroundColor: colors.bg }}>
+        <View style={{ flex: 1, backgroundColor: colors.glass.overlayStrong }}>
+          <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} style={StyleSheet.absoluteFill} />
           {children}
         </View>
       </Modal>
@@ -51,12 +53,14 @@ function AndroidSheet({ visible, onClose, children, fullHeight }) {
         <KeyboardAvoidingView behavior="padding">
           <View style={[
             styles.sheet,
-            { backgroundColor: colors.bg },
+            { borderColor: colors.glass.border, borderWidth: 1, borderBottomWidth: 0 },
             fullHeight && styles.sheetFull,
             fullHeight
               ? { paddingTop: 0, paddingBottom: insets.bottom || 16 }
               : { paddingTop: 8, paddingBottom: insets.bottom || 16 },
           ]}>
+            <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} style={[StyleSheet.absoluteFill, styles.sheetBg]} />
+            <View style={[StyleSheet.absoluteFill, styles.sheetBg, { backgroundColor: colors.glass.overlayStrong }]} />
             {children}
           </View>
         </KeyboardAvoidingView>
@@ -72,11 +76,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
-    backgroundColor: Colors.bg,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
     maxHeight: '92%',
     paddingTop: 8,
+  },
+  sheetBg: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   sheetFull: {
     height: '92%',

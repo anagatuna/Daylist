@@ -1,4 +1,5 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -7,7 +8,9 @@ export default function Dialog({ visible, title, message, buttons = [], onClose 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={[styles.card, { backgroundColor: colors.surface }]}>
+        <Pressable style={[styles.card, { borderColor: colors.glass.border }]}>
+          <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} style={StyleSheet.absoluteFill} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass.overlayStrong }]} />
           <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
           {message ? <Text style={[styles.message, { color: colors.textMuted }]}>{message}</Text> : null}
 
@@ -26,9 +29,10 @@ export default function Dialog({ visible, title, message, buttons = [], onClose 
               >
                 <Text style={[
                   styles.btnText,
+                  { color: colors.primary },
                   btn.style === 'cancel' && [styles.btnTextCancel, { color: colors.textMuted }],
-                  btn.style === 'destructive' && styles.btnTextDestructive,
-                  btn.style === 'primary' && styles.btnTextPrimary,
+                  btn.style === 'destructive' && [styles.btnTextDestructive, { color: colors.danger }],
+                  btn.style === 'primary' && [styles.btnTextPrimary, { color: colors.primary }],
                 ]}>
                   {btn.text}
                 </Text>
@@ -50,8 +54,8 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   card: {
-    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
+    borderWidth: 1,
     width: '100%',
     overflow: 'hidden',
     ...Shadow.lg,

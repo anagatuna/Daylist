@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   ActivityIndicator, Alert, Image, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +36,7 @@ export default function ProfileScreen() {
   const { user } = useAuth();
   const { colors, isDark, preference, setPreference } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState([]);
   const [commentCounts, setCommentCounts] = useState({});
   const [friendCount, setFriendCount] = useState(0);
@@ -109,7 +110,7 @@ export default function ProfileScreen() {
   if (!user) return null;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={[]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <FlatList
         data={posts}
@@ -119,19 +120,26 @@ export default function ProfileScreen() {
         ListHeaderComponent={
           <View>
             {/* Hero */}
-            <View style={[styles.heroShadow, { backgroundColor: colors.surface }]}>
-            <View style={[styles.hero, { backgroundColor: colors.surface }]}>
+            <View style={[styles.hero, { backgroundColor: colors.bg, paddingTop: insets.top + 16 }]}>
               <LinearGradient
-                colors={['rgba(180,141,224,0.18)', 'rgba(218,143,189,0.08)', 'transparent']}
+                colors={isDark
+                  ? ['rgba(180,141,224,0.28)', 'rgba(218,143,189,0.10)', 'rgba(0,0,0,0)']
+                  : ['rgba(155,109,214,0.42)', 'rgba(212,112,154,0.20)', 'rgba(0,0,0,0)']}
                 style={StyleSheet.absoluteFill}
               />
 
               <View style={styles.topBtns}>
-                <TouchableOpacity style={styles.editBtn} onPress={() => router.push('/edit-profile')}>
+                <TouchableOpacity
+                  style={[styles.editBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.38)', borderColor: 'transparent' }]}
+                  onPress={() => router.push('/edit-profile')}
+                >
                   <Ionicons name="pencil-outline" size={15} color={colors.primary} />
                   <Text style={[styles.editBtnText, { color: colors.primary }]}>Editar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.bellBtn} onPress={() => setShowReminder(true)}>
+                <TouchableOpacity
+                  style={[styles.bellBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.38)', borderColor: 'transparent' }]}
+                  onPress={() => setShowReminder(true)}
+                >
                   <Ionicons name={reminderTime ? 'notifications' : 'notifications-outline'} size={18} color={reminderTime ? colors.primary : colors.textMuted} />
                 </TouchableOpacity>
               </View>
@@ -151,7 +159,7 @@ export default function ProfileScreen() {
                 <View style={styles.stat}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                     <Text style={{ fontSize: 16 }}>🔥</Text>
-                    <Text style={[styles.statNum, { color: '#FF9500' }]}>{streak}</Text>
+                    <Text style={[styles.statNum, { color: colors.streak }]}>{streak}</Text>
                   </View>
                   <Text style={[styles.statLabel, { color: colors.textMuted }]}>racha</Text>
                 </View>
@@ -190,7 +198,6 @@ export default function ProfileScreen() {
                 <Ionicons name="log-out-outline" size={15} color={colors.textMuted} />
                 <Text style={[styles.logoutText, { color: colors.textMuted }]}>Cerrar sesión</Text>
               </TouchableOpacity>
-            </View>
             </View>
 
             {!loading && posts.length > 0 && <StatsCard posts={posts} />}
@@ -255,23 +262,14 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
 
-  heroShadow: {
-    marginHorizontal: -16,
-    marginBottom: 28,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    backgroundColor: Colors.surface,
-    ...Shadow.md,
-  },
   hero: {
     alignItems: 'center',
+    marginHorizontal: -16,
+    marginBottom: 16,
     paddingHorizontal: 24,
     paddingTop: 32,
     paddingBottom: 28,
-    backgroundColor: Colors.surface,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    overflow: 'hidden',
+    backgroundColor: Colors.bg,
   },
   topBtns: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-end', marginBottom: 16 },
   editBtn: {
@@ -336,7 +334,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingLeft: 4,
   },
-  list:      { paddingHorizontal: 16, paddingBottom: 40 },
+  list:      { paddingHorizontal: 16, paddingBottom: 110 },
   postBlock: { marginBottom: 24 },
   postDate:  { color: Colors.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 14, paddingLeft: 4 },
   empty:     { alignItems: 'center', marginTop: 40, gap: 10 },

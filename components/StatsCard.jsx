@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -28,8 +29,10 @@ export default function StatsCard({ posts, marginBottom = 0 }) {
   if (!topArtists.length) return null;
 
   return (
-    <View style={[s.wrap, { marginBottom }]}>
-      <View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View style={[s.wrap, { marginBottom, shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacitySm }]}>
+      <View style={[s.card, { borderColor: colors.cardGlass.border }]}>
+        <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, s.cardBg]} />
+        <View style={[StyleSheet.absoluteFill, s.cardBg, { backgroundColor: colors.cardGlass.overlay }]} />
         <Text style={[s.title, { color: colors.textMuted }]}>ARTISTAS MÁS ESCUCHADOS</Text>
         {topArtists.map(([artist, count], i) => (
           <View key={artist} style={s.row}>
@@ -46,8 +49,9 @@ export default function StatsCard({ posts, marginBottom = 0 }) {
 }
 
 const s = StyleSheet.create({
-  wrap: { marginBottom: 0 },
-  card: { backgroundColor: Colors.surface, borderRadius: Radius.md, padding: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, gap: 12, ...Shadow.sm },
+  wrap: { marginBottom: 0, borderRadius: Radius.md, ...Shadow.sm, shadowRadius: 10 },
+  card: { borderRadius: Radius.md, padding: 16, borderWidth: 1, gap: 12, overflow: 'hidden' },
+  cardBg: { borderRadius: Radius.md },
   title: { color: Colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   badge: { borderRadius: Radius.sm, paddingHorizontal: 7, paddingVertical: 3 },

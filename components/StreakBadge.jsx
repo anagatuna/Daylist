@@ -14,7 +14,7 @@ export default function StreakBadge({ streak, size = 'md', showLabel = true }) {
   return (
     <View style={[s.wrap, isSmall && s.wrapSm]}>
       <LinearGradient
-        colors={['#FF9500', '#FF5722']}
+        colors={colors.gradientStreak}
         style={[s.badge, isSmall && s.badgeSm]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
