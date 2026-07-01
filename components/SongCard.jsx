@@ -99,28 +99,37 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
 
       {/* Actions */}
       <View style={[styles.actions, { borderTopColor: colors.border }]}>
-        <TouchableOpacity style={styles.actionBtn} onPress={openLyrics}>
-          <Ionicons name="document-text-outline" size={13} color={colors.textMuted} />
-          <Text style={[styles.actionText, { color: colors.textMuted }]}>{hasSnippet ? 'Ver letra destacada' : 'Ver letra'}</Text>
+        <TouchableOpacity
+          onPress={openLyrics}
+          activeOpacity={0.7}
+          style={{ flex: 1, marginRight: 8, flexDirection: 'row', alignItems: 'center', gap: 5 }}
+        >
+          <Ionicons name="document-text-outline" size={13} color={colors.primary} />
+          <Text style={[styles.lyricBtnText, { color: colors.primary }]} numberOfLines={1}>
+            {hasSnippet ? 'Ver letra destacada' : 'Ver letra'}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.spotifyBtn} onPress={openSpotify}>
-          <MaterialCommunityIcons name="spotify" size={15} color={colors.spotify} />
-          <Text style={[styles.spotifyText, { color: colors.spotify }]}>Abrir en Spotify</Text>
+        <TouchableOpacity onPress={openSpotify} activeOpacity={0.7} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
+          <MaterialCommunityIcons name="spotify" size={13} color={colors.spotify} />
+          <Text style={[styles.spotifyText, { color: colors.spotify }]}>Escuchar en Spotify</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Reactions & Comments */}
+      {/* Reactions & Comments — alineadas a la izquierda */}
       {postId && (
-        <Reactions
-          postId={postId}
-          slot={slot}
-          reactions={reactions ?? {}}
-          postOwnerUid={postOwnerUid}
-          commentCount={commentCount ?? 0}
-          onComment={() => setShowComments(true)}
-        />
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Reactions
+            postId={postId}
+            slot={slot}
+            reactions={reactions ?? {}}
+            postOwnerUid={postOwnerUid}
+            commentCount={commentCount ?? 0}
+            onComment={() => setShowComments(true)}
+          />
+        </View>
       )}
+
       <CommentsSheet
         visible={showComments}
         onClose={() => setShowComments(false)}
@@ -232,17 +241,38 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
   },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionText: { color: Colors.textMuted, fontSize: 12 },
-  spotifyBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  spotifyText: { color: '#1DB954', fontSize: 12 },
+  lyricBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 5,
+    borderRadius: Radius.pill,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+  },
+  lyricBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  spotifyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderRadius: Radius.pill,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+  },
+  spotifyText: { fontSize: 12, fontWeight: '600', flexShrink: 1 },
 
   // Modal
   modal: { flex: 1, backgroundColor: Colors.bg },
