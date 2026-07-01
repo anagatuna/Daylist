@@ -29,9 +29,9 @@ export default function StatsCard({ posts, marginBottom = 0 }) {
   if (!topArtists.length) return null;
 
   return (
-    <View style={[s.wrap, { marginBottom, shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacitySm }]}>
+    <View style={[s.wrap, { marginBottom, backgroundColor: colors.bg, shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacitySm }]}>
       <View style={[s.card, { borderColor: colors.cardGlass.border }]}>
-        <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, s.cardBg]} />
+        <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, s.cardBg]} />
         <View style={[StyleSheet.absoluteFill, s.cardBg, { backgroundColor: colors.cardGlass.overlay }]} />
         <Text style={[s.title, { color: colors.textMuted }]}>ARTISTAS MÁS ESCUCHADOS</Text>
         {topArtists.map(([artist, count], i) => (

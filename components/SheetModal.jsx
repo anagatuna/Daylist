@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Modal, View, StyleSheet, Platform, Pressable, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -23,7 +24,7 @@ export default function SheetModal({ visible, onClose, children, fullHeight = fa
         presentationStyle="pageSheet"
         onRequestClose={onClose}>
         <View style={{ flex: 1, backgroundColor: colors.glass.overlayStrong }}>
-          <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} style={StyleSheet.absoluteFill} />
+          <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
           {children}
         </View>
       </Modal>
@@ -40,6 +41,15 @@ export default function SheetModal({ visible, onClose, children, fullHeight = fa
 function AndroidSheet({ visible, onClose, children, fullHeight }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  // Guards against the Android quirk where the tail of the same touch that
+  // opens the modal lands on the backdrop of the newly-mounted window,
+  // instantly closing it. The backdrop only becomes tappable once the
+  // native modal has actually finished presenting.
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!visible) setReady(false);
+  }, [visible]);
 
   return (
     <Modal
@@ -47,9 +57,10 @@ function AndroidSheet({ visible, onClose, children, fullHeight }) {
       animationType="slide"
       transparent
       statusBarTranslucent
+      onShow={() => setReady(true)}
       onRequestClose={onClose}>
       <View style={styles.root}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={() => ready && onClose()} />
         <KeyboardAvoidingView behavior="padding">
           <View style={[
             styles.sheet,
@@ -59,7 +70,7 @@ function AndroidSheet({ visible, onClose, children, fullHeight }) {
               ? { paddingTop: 0, paddingBottom: insets.bottom || 16 }
               : { paddingTop: 8, paddingBottom: insets.bottom || 16 },
           ]}>
-            <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} style={[StyleSheet.absoluteFill, styles.sheetBg]} />
+            <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, styles.sheetBg]} />
             <View style={[StyleSheet.absoluteFill, styles.sheetBg, { backgroundColor: colors.glass.overlayStrong }]} />
             {children}
           </View>

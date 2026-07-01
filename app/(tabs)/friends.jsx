@@ -246,7 +246,7 @@ export default function FriendsScreen() {
     return (
       <View style={[styles.cardShadow, { shadowColor: colors.primary }]}>
         <TouchableOpacity style={[styles.userRow, { borderColor: colors.cardGlass.border }]} onPress={() => router.push(`/user/${item.id}`)} activeOpacity={0.7}>
-          <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
+          <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
           <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg, backgroundColor: colors.cardGlass.overlay }]} />
           <Avatar item={item} />
           <View style={{ flex: 1 }}>
@@ -297,7 +297,7 @@ export default function FriendsScreen() {
     return (
       <View style={[styles.cardShadow, { shadowColor: colors.primary }]}>
         <TouchableOpacity style={[styles.activityRow, { borderColor: colors.cardGlass.border }]} onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.7}>
-          <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
+          <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
           <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg, backgroundColor: colors.cardGlass.overlay }]} />
           {content}
         </TouchableOpacity>
@@ -429,7 +429,7 @@ export default function FriendsScreen() {
         <View style={{ flex: 1 }}>
           <View style={styles.searchRow}>
             <View style={[styles.searchInputWrapper, { borderColor: colors.cardGlass.border, shadowColor: colors.primary }]}>
-              <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.md }]} />
+              <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.md }]} />
               <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.md, backgroundColor: colors.cardGlass.overlay }]} />
               <TextInput
                 style={[styles.searchInput, { color: colors.textPrimary }]}

@@ -274,7 +274,7 @@ export default function CreatePostScreen() {
           contentContainerStyle={{ padding: 16, gap: 10 }}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
-            <View style={[styles.resultShadow, { shadowColor: colors.primary }]}>
+            <View style={[styles.resultShadow, { backgroundColor: colors.bg, shadowColor: colors.primary }]}>
               <TouchableOpacity style={[styles.resultItem, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => selectTrack(item)}>
                 {item.artworkUrl100
                   ? <Image source={{ uri: item.artworkUrl100 }} style={styles.resultCover} />
@@ -314,9 +314,9 @@ export default function CreatePostScreen() {
             <Text style={[styles.slotLabel, { color: colors.textMuted }]}>{label}</Text>
 
             {songs[key] ? (
-              <View style={[styles.cardShadow, { shadowColor: colors.primary }]}>
+              <View style={[styles.cardShadow, { backgroundColor: colors.bg, shadowColor: colors.primary }]}>
                 <View style={[styles.selectedCard, { borderColor: colors.cardGlass.border }]}>
-                  <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
+                  <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
                   <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg, backgroundColor: colors.cardGlass.overlay }]} />
                   <View style={styles.selectedRow}>
                     {songs[key].albumImage && (
@@ -364,9 +364,9 @@ export default function CreatePostScreen() {
                 </View>
               </View>
             ) : (
-              <View style={[styles.cardShadow, { shadowColor: colors.primary, shadowOpacity: 0.10 }]}>
+              <View style={[styles.cardShadow, { backgroundColor: colors.bg, shadowColor: colors.primary, shadowOpacity: 0.10 }]}>
                 <TouchableOpacity style={[styles.addBtn, { borderColor: colors.cardGlass.border }]} onPress={() => setActiveSlot(key)}>
-                  <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
+                  <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg }]} />
                   <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.lg, backgroundColor: colors.cardGlass.overlay }]} />
                   <LinearGradient colors={colors.gradientPrimary} style={styles.addIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                     <Ionicons name="add" size={20} color="#fff" />
@@ -380,7 +380,7 @@ export default function CreatePostScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12, borderTopColor: colors.borderLight }]}>
-        <BlurView tint={colors.cardGlass.tint} intensity={40} style={StyleSheet.absoluteFill} />
+        <BlurView tint={colors.cardGlass.tint} intensity={40} experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.cardGlass.overlay }]} />
         <TouchableOpacity onPress={publish} disabled={saving} activeOpacity={0.85}>
           <LinearGradient colors={colors.gradientPrimary} style={styles.publishBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>

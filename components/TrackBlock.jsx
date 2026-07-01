@@ -31,9 +31,9 @@ function FilledBlock({ slot, onPlay }) {
   const accent = ACCENT[slot.timeOfDay] ?? ACCENT.morning;
 
   return (
-    <View style={[styles.shadowWrap, { shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacity }]}>
+    <View style={[styles.shadowWrap, { backgroundColor: colors.bg, shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacity }]}>
     <View style={[styles.filledContainer, { borderColor: colors.cardGlass.border }]}>
-      <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, styles.blockBg]} />
+      <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, styles.blockBg]} />
       <View style={[StyleSheet.absoluteFill, styles.blockBg, { backgroundColor: colors.cardGlass.overlay }]} />
       <LinearGradient
         colors={accent.bar}
@@ -76,13 +76,13 @@ function EmptyBlock({ slot, onAdd }) {
   const accent = ACCENT[slot.timeOfDay] ?? ACCENT.morning;
 
   return (
-    <View style={[styles.shadowWrapSm, { shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacitySm }]}>
+    <View style={[styles.shadowWrapSm, { backgroundColor: colors.bg, shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacitySm }]}>
     <TouchableOpacity
       style={[styles.emptyContainer, { borderColor: colors.cardGlass.border }]}
       onPress={() => onAdd(slot.timeOfDay)}
       activeOpacity={0.6}
     >
-      <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, styles.blockBg]} />
+      <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, styles.blockBg]} />
       <View style={[StyleSheet.absoluteFill, styles.blockBg, { backgroundColor: colors.cardGlass.overlay }]} />
       <LinearGradient
         colors={[accent.bar[0] + '30', accent.bar[1] + '08']}

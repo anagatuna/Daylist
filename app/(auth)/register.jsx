@@ -126,7 +126,7 @@ export default function RegisterScreen() {
             </View>
 
             <View style={[styles.card, { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.6)' }]}>
-              <BlurView tint={isDark ? 'dark' : 'light'} intensity={isDark ? 40 : 60} style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl }]} />
+              <BlurView tint={isDark ? 'dark' : 'light'} intensity={isDark ? 40 : 60} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl }]} />
               <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl, backgroundColor: isDark ? 'rgba(30,15,50,0.55)' : 'rgba(255,255,255,0.45)' }]} />
 
               {[

@@ -61,9 +61,9 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
   const stanzas = parseLyrics(lyrics);
 
   return (
-    <View style={[styles.cardShadowWrap, { shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacity }]}>
+    <View style={[styles.cardShadowWrap, { backgroundColor: colors.bg, shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacity }]}>
     <View style={[styles.card, { borderColor: colors.cardGlass.border }]}>
-      <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, styles.cardBg]} />
+      <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, styles.cardBg]} />
       <View style={[StyleSheet.absoluteFill, styles.cardBg, { backgroundColor: colors.cardGlass.overlay }]} />
       {/* Slot label */}
       <Text style={[styles.slotLabel, { color: colors.primary }]}>{config.label.toUpperCase()}</Text>

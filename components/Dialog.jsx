@@ -9,7 +9,7 @@ export default function Dialog({ visible, title, message, buttons = [], onClose 
     <Modal visible={visible} transparent animationType="fade">
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={[styles.card, { borderColor: colors.glass.border }]}>
-          <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} style={StyleSheet.absoluteFill} />
+          <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass.overlayStrong }]} />
           <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
           {message ? <Text style={[styles.message, { color: colors.textMuted }]}>{message}</Text> : null}

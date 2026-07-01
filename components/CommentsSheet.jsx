@@ -29,7 +29,12 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
   const [replyTo, setReplyTo] = useState(null);
   const [sending, setSending] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [backdropReady, setBackdropReady] = useState(false);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!visible) setBackdropReady(false);
+  }, [visible]);
 
   useEffect(() => {
     const show = Keyboard.addListener(
@@ -246,9 +251,15 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      statusBarTranslucent
+      onShow={() => setBackdropReady(true)}
+      onRequestClose={onClose}>
       <View style={styles.androidRoot}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={() => backdropReady && onClose()} />
         <View style={[styles.androidSheet, { backgroundColor: colors.bg }]}>
           {content}
         </View>

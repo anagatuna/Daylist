@@ -126,7 +126,7 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
         <Modal visible transparent animationType="fade">
           <Pressable style={styles.backdrop} onPress={() => setTooltip(null)}>
             <View style={[styles.tooltipBox, { borderColor: colors.cardGlass.border }]}>
-              <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl }]} />
+              <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl }]} />
               <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl, backgroundColor: colors.cardGlass.overlay }]} />
               <Text style={styles.tooltipEmoji}>{tooltip.emoji}</Text>
               {loadingTooltip ? (
@@ -145,7 +145,7 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
       <Modal visible={showPicker} transparent animationType="fade">
         <Pressable style={styles.backdrop} onPress={() => setShowPicker(false)}>
           <View style={[styles.picker, { borderColor: colors.navBar.border, shadowColor: colors.primary }]}>
-            <BlurView tint={colors.navBar.tint} intensity={colors.navBar.intensity} style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl }]} />
+            <BlurView tint={colors.navBar.tint} intensity={colors.navBar.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl }]} />
             <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl, backgroundColor: colors.glass.overlayStrong }]} />
             {QUICK_EMOJIS.map(emoji => (
               <TouchableOpacity
