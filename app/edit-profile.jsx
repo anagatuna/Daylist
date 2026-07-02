@@ -5,7 +5,7 @@ import {
   Platform, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
@@ -13,7 +13,15 @@ import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updateP
 import { auth, db } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSpotifyAuth } from '@/hooks/useSpotifyAuth';
 import Dialog from '@/components/Dialog';
+
+function friendlySpotifyError(err) {
+  const code = err?.code ?? err?.params?.error;
+  if (code === 'access_denied') return 'Cancelaste la conexión con Spotify.';
+  if (err?.message?.toLowerCase().includes('network')) return 'Sin conexión a internet. Intenta de nuevo.';
+  return 'No se pudo conectar con Spotify. Intenta de nuevo.';
+}
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -36,6 +44,12 @@ export default function EditProfileScreen() {
   const [dialog, setDialog] = useState({ visible: false, title: '', message: '' });
 
   function showAlert(title, message) { setDialog({ visible: true, title, message: message ?? '' }); }
+
+  const spotify = useSpotifyAuth();
+
+  useEffect(() => {
+    if (spotify.error) showAlert('Error de Spotify', friendlySpotifyError(spotify.error));
+  }, [spotify.error]);
 
   const passwordChecks = [
     { key: 'length', label: 'Al menos 6 caracteres', test: (p) => p.length >= 6 },
@@ -273,6 +287,45 @@ export default function EditProfileScreen() {
             </View>
           )}
 
+          <View style={styles.spotifySection}>
+            <Text style={[styles.label, { color: colors.textMuted }]}>CUENTA DE SPOTIFY</Text>
+            {spotify.checking ? (
+              <ActivityIndicator color={colors.spotify} style={{ marginTop: 4 }} />
+            ) : spotify.connected ? (
+              <View style={styles.spotifyConnectedRow}>
+                {spotify.profile?.images?.[0]?.url ? (
+                  <Image source={{ uri: spotify.profile.images[0].url }} style={styles.spotifyAvatar} />
+                ) : (
+                  <View style={[styles.spotifyAvatarPlaceholder, { backgroundColor: colors.spotify }]}>
+                    <MaterialCommunityIcons name="spotify" size={18} color="#fff" />
+                  </View>
+                )}
+                <Text style={[styles.spotifyConnectedText, { color: colors.textPrimary }]} numberOfLines={1}>
+                  Conectado como {spotify.profile?.display_name ?? '...'}
+                </Text>
+                <TouchableOpacity onPress={spotify.disconnect} hitSlop={8}>
+                  <Text style={[styles.spotifyDisconnect, { color: colors.textMuted }]}>Desconectar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={spotify.connect}
+                disabled={spotify.connecting}
+                activeOpacity={0.85}
+                style={[styles.spotifyConnectBtn, { borderColor: colors.spotify }]}
+              >
+                {spotify.connecting ? (
+                  <ActivityIndicator color={colors.spotify} />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="spotify" size={18} color={colors.spotify} />
+                    <Text style={[styles.spotifyConnectText, { color: colors.spotify }]}>Conectar con Spotify</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -318,4 +371,19 @@ const styles = StyleSheet.create({
   eyeBtn: { paddingHorizontal: 12 },
   requirementsList: { marginTop: -10, marginBottom: 16, gap: 5 },
   requirementRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+
+  spotifySection: {
+    marginTop: 32, paddingTop: 20,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border,
+  },
+  spotifyConnectBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1.5, borderRadius: Radius.pill, paddingVertical: 14, marginTop: 12,
+  },
+  spotifyConnectText: { fontSize: 15, fontWeight: '700' },
+  spotifyConnectedRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  spotifyAvatar: { width: 36, height: 36, borderRadius: 18 },
+  spotifyAvatarPlaceholder: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  spotifyConnectedText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  spotifyDisconnect: { fontSize: 12, fontWeight: '600' },
 });

@@ -19,6 +19,9 @@ import Dialog from '@/components/Dialog';
 import ReminderModal, { REMINDER_KEY, formatReminderTime } from '@/components/ReminderModal';
 import StatsCard from '@/components/StatsCard';
 import StreakBadge from '@/components/StreakBadge';
+import SpotifyTopSection from '@/components/SpotifyTopSection';
+import { useSpotifyAuth } from '@/hooks/useSpotifyAuth';
+import { useSpotifyTopItems } from '@/hooks/useSpotifyTopItems';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -49,16 +52,20 @@ export default function ProfileScreen() {
   const [showReminder, setShowReminder] = useState(false);
   const [reminderTime, setReminderTime] = useState(null);
 
+  const { connected: spotifyConnected } = useSpotifyAuth();
+  const { tracks: spotifyTracks, artists: spotifyArtists, loading: spotifyLoading, error: spotifyError, reload: reloadSpotify } = useSpotifyTopItems(spotifyConnected);
+
   useFocusEffect(
     useCallback(() => {
       if (user) load();
+      if (spotifyConnected) reloadSpotify();
       AsyncStorage.getItem(REMINDER_KEY).then(stored => {
         if (stored) {
           const { enabled, hour, minute } = JSON.parse(stored);
           setReminderTime(enabled ? formatReminderTime(hour, minute) : null);
         }
       });
-    }, [user])
+    }, [user, spotifyConnected])
   );
 
   async function load() {
@@ -201,6 +208,9 @@ export default function ProfileScreen() {
             </View>
 
             {!loading && posts.length > 0 && <StatsCard posts={posts} />}
+            {spotifyConnected && (
+              <SpotifyTopSection tracks={spotifyTracks} artists={spotifyArtists} loading={spotifyLoading} error={spotifyError} />
+            )}
             <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>HISTORIAL</Text>
             {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />}
           </View>
