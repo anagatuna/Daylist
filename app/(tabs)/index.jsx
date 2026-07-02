@@ -166,7 +166,7 @@ export default function HomeScreen() {
           </View>
           <Text style={[styles.dateTitle, { color: colors.textMuted }]}>{dayName}, {dayNum} de {month}</Text>
           <View style={styles.statusRow}>
-            <View style={[styles.statusDot, { backgroundColor: remaining === 0 ? '#34C759' : colors.primary }]} />
+            <View style={[styles.statusDot, { backgroundColor: remaining === 0 ? colors.success : colors.primary }]} />
             <Text style={[styles.statusText, { color: colors.textMuted }]}>
               {remaining === 0 ? 'Día completo' : `${remaining} ${remaining === 1 ? 'momento' : 'momentos'} por agregar`}
             </Text>
@@ -258,7 +258,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: Colors.bg },
   scroll:  { flex: 1 },
-  content: { paddingHorizontal: 16, paddingBottom: 48 },
+  content: { paddingHorizontal: 16, paddingBottom: 110 },
 
   header:    { paddingTop: Platform.OS === 'ios' ? 8 : 16, paddingHorizontal: 4, marginBottom: 20 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },

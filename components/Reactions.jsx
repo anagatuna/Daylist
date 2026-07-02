@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { doc, updateDoc, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,9 +22,7 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
   const [tooltip, setTooltip] = useState(null);
   const [loadingTooltip, setLoadingTooltip] = useState(false);
 
-  useEffect(() => {
-    setLocalReactions(reactions);
-  }, [JSON.stringify(reactions)]);
+  useEffect(() => { setLocalReactions(reactions); }, [JSON.stringify(reactions)]);
 
   const myEmoji = Object.entries(localReactions).find(
     ([, users]) => users?.includes(user?.uid)
@@ -32,27 +32,18 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
     if (!user) return;
     setShowPicker(false);
     setShowEmojiKeyboard(false);
-
     const isNewReaction = emoji !== myEmoji;
     const postRef = doc(db, 'posts', postId);
     const patch = {};
-
-    if (myEmoji) {
-      patch[`reactions.${slot}.${myEmoji}`] = arrayRemove(user.uid);
-    }
-    if (isNewReaction) {
-      patch[`reactions.${slot}.${emoji}`] = arrayUnion(user.uid);
-    }
-
+    if (myEmoji) patch[`reactions.${slot}.${myEmoji}`] = arrayRemove(user.uid);
+    if (isNewReaction) patch[`reactions.${slot}.${emoji}`] = arrayUnion(user.uid);
     setLocalReactions(prev => {
       const next = { ...prev };
       if (myEmoji) next[myEmoji] = (next[myEmoji] ?? []).filter(u => u !== user.uid);
       if (isNewReaction) next[emoji] = [...(next[emoji] ?? []), user.uid];
       return next;
     });
-
     await updateDoc(postRef, patch);
-
     if (isNewReaction && postOwnerUid && postOwnerUid !== user.uid) {
       notifyReaction(postOwnerUid, user.displayName, emoji).catch(() => {});
     }
@@ -62,9 +53,7 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
     setLoadingTooltip(true);
     setTooltip({ emoji, names: [] });
     const names = await Promise.all(
-      uids.map(uid =>
-        getDoc(doc(db, 'users', uid)).then(s => s.data()?.displayName ?? 'Usuario')
-      )
+      uids.map(uid => getDoc(doc(db, 'users', uid)).then(s => s.data()?.displayName ?? 'Usuario'))
     );
     setTooltip({ emoji, names });
     setLoadingTooltip(false);
@@ -77,28 +66,54 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
   return (
     <View style={styles.container}>
       <View style={styles.pills}>
-        {summary.map(([emoji, uids]) => (
-          <TouchableOpacity
-            key={emoji}
-            style={[styles.pill, { backgroundColor: colors.bg, borderColor: colors.border }, myEmoji === emoji && styles.pillActive]}
-            onPress={() => react(emoji)}
-            onLongPress={() => openTooltip(emoji, uids)}
-            delayLongPress={350}
-          >
-            <Text style={styles.pillEmoji}>{emoji}</Text>
-            <Text style={[styles.pillCount, { color: colors.textMuted }, myEmoji === emoji && { color: colors.primary }]}>
-              {uids.length}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {/* Reaction pills */}
+        {summary.map(([emoji, uids]) => {
+          const active = myEmoji === emoji;
+          return (
+            <TouchableOpacity
+              key={emoji}
+              onPress={() => react(emoji)}
+              onLongPress={() => openTooltip(emoji, uids)}
+              delayLongPress={350}
+              activeOpacity={0.7}
+            >
+              {active ? (
+                <LinearGradient
+                  colors={colors.gradientPrimary}
+                  style={styles.pillActive}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.pillEmoji}>{emoji}</Text>
+                  <Text style={styles.pillCountActive}>{uids.length}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={[styles.pill, { backgroundColor: colors.primary + '0E', borderColor: colors.primary + '28' }]}>
+                  <Text style={styles.pillEmoji}>{emoji}</Text>
+                  <Text style={[styles.pillCount, { color: colors.textMuted }]}>{uids.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
 
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowPicker(true)}>
-          <Ionicons name="add" size={18} color={colors.primary} />
+        {/* Add emoji */}
+        <TouchableOpacity
+          style={[styles.addBtn, { backgroundColor: colors.primary + '0E', borderColor: colors.primary + '28' }]}
+          onPress={() => setShowPicker(true)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="add" size={16} color={colors.primary} />
         </TouchableOpacity>
 
+        {/* Comment */}
         {onComment && (
-          <TouchableOpacity style={styles.commentPill} onPress={onComment}>
-            <Ionicons name="chatbubble-outline" size={15} color={colors.primary} />
+          <TouchableOpacity
+            style={[styles.commentPill, { backgroundColor: colors.primary + '0E', borderColor: colors.primary + '28' }]}
+            onPress={onComment}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chatbubble-outline" size={14} color={colors.primary} />
             {commentCount > 0 && (
               <Text style={[styles.commentPillCount, { color: colors.primary }]}>{commentCount}</Text>
             )}
@@ -110,7 +125,9 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
       {tooltip && (
         <Modal visible transparent animationType="fade">
           <Pressable style={styles.backdrop} onPress={() => setTooltip(null)}>
-            <View style={[styles.tooltipBox, { backgroundColor: colors.surface }]}>
+            <View style={[styles.tooltipBox, { borderColor: colors.cardGlass.border }]}>
+              <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl }]} />
+              <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl, backgroundColor: colors.cardGlass.overlay }]} />
               <Text style={styles.tooltipEmoji}>{tooltip.emoji}</Text>
               {loadingTooltip ? (
                 <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 4 }} />
@@ -127,27 +144,28 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
       {/* Quick Picker */}
       <Modal visible={showPicker} transparent animationType="fade">
         <Pressable style={styles.backdrop} onPress={() => setShowPicker(false)}>
-          <View style={[styles.picker, { backgroundColor: colors.surface }]}>
+          <View style={[styles.picker, { borderColor: colors.navBar.border, shadowColor: colors.primary }]}>
+            <BlurView tint={colors.navBar.tint} intensity={colors.navBar.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl }]} />
+            <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl, backgroundColor: colors.glass.overlayStrong }]} />
             {QUICK_EMOJIS.map(emoji => (
               <TouchableOpacity
                 key={emoji}
-                style={[styles.emojiBtn, { backgroundColor: colors.bg }, myEmoji === emoji && styles.emojiBtnActive]}
+                style={[styles.emojiBtn, { backgroundColor: colors.primary + '0E' }, myEmoji === emoji && { backgroundColor: colors.primary + '22', borderWidth: 1, borderColor: colors.primary + '50' }]}
                 onPress={() => react(emoji)}
               >
                 <Text style={styles.emojiText}>{emoji}</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={[styles.emojiBtn, { backgroundColor: colors.bg }]}
+              style={[styles.emojiBtn, { backgroundColor: colors.primary + '0E' }]}
               onPress={() => { setShowPicker(false); setShowEmojiKeyboard(true); }}
             >
-              <Ionicons name="add" size={24} color={colors.primary} />
+              <Ionicons name="grid-outline" size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </Pressable>
       </Modal>
 
-      {/* Full Emoji Keyboard */}
       <EmojiPicker
         onEmojiSelected={e => react(e.emoji)}
         open={showEmojiKeyboard}
@@ -175,9 +193,7 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
             icon: colors.textMuted,
             background: colors.surface,
           },
-          emoji: {
-            selected: 'rgba(155,109,214,0.12)',
-          },
+          emoji: { selected: 'rgba(155,109,214,0.12)' },
         }}
       />
     </View>
@@ -185,70 +201,68 @@ export default function Reactions({ postId, slot, reactions = {}, postOwnerUid, 
 }
 
 const styles = StyleSheet.create({
-  container: { marginTop: 10 },
-  pills:     { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
+  container: { marginTop: 8 },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
+
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: Colors.bg,
     borderRadius: Radius.pill,
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
+    paddingHorizontal: 9, paddingVertical: 5,
+    borderWidth: 1,
   },
   pillActive: {
-    backgroundColor: 'rgba(155,109,214,0.10)',
-    borderColor: 'rgba(155,109,214,0.35)',
-  },
-  pillEmoji:       { fontSize: 14 },
-  pillCount:       { color: Colors.textMuted, fontSize: 12, fontWeight: '600' },
-  pillCountActive: { color: Colors.primary },
-  addBtn: {
-    backgroundColor: 'rgba(155,109,214,0.08)',
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     borderRadius: Radius.pill,
-    width: 30, height: 30,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(155,109,214,0.25)',
+    paddingHorizontal: 9, paddingVertical: 5,
   },
+  pillEmoji: { fontSize: 13 },
+  pillCount: { fontSize: 12, fontWeight: '600' },
+  pillCountActive: { fontSize: 12, fontWeight: '700', color: '#fff' },
 
-  backdrop: { flex: 1, backgroundColor: 'rgba(28,28,30,0.4)', justifyContent: 'center', alignItems: 'center' },
+  addBtn: {
+    borderRadius: Radius.pill,
+    width: 28, height: 28,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+  },
+  commentPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 9, paddingVertical: 5,
+    borderWidth: 1,
+  },
+  commentPillCount: { fontSize: 12, fontWeight: '600' },
+
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
 
   tooltipBox: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     paddingHorizontal: 20,
     paddingVertical: 16,
     alignItems: 'center',
     gap: 6,
     minWidth: 140,
+    overflow: 'hidden',
+    borderWidth: 1,
     ...Shadow.lg,
   },
   tooltipEmoji: { fontSize: 28, marginBottom: 4 },
-  tooltipName:  { color: Colors.textPrimary, fontSize: 14, fontWeight: '500' },
+  tooltipName: { fontSize: 14, fontWeight: '500' },
 
   picker: {
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     padding: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
     ...Shadow.lg,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
   },
   emojiBtn: {
-    width: 46, height: 46, borderRadius: 23,
+    width: 44, height: 44, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.bg,
-  },
-  emojiBtnActive: {
-    backgroundColor: 'rgba(155,109,214,0.12)',
-    borderWidth: 1, borderColor: 'rgba(155,109,214,0.4)',
   },
   emojiText: { fontSize: 22 },
-
-  commentPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(155,109,214,0.08)',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderWidth: 1, borderColor: 'rgba(155,109,214,0.25)',
-  },
-  commentPillCount: { color: Colors.primary, fontSize: 12, fontWeight: '600' },
 });

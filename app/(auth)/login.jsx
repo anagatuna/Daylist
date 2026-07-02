@@ -6,10 +6,11 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow } from '@/constants/Theme';
+import { Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import Dialog from '@/components/Dialog';
 
@@ -24,8 +25,8 @@ export default function LoginScreen() {
   const [dialog, setDialog] = useState({ visible: false, message: '' });
 
   const fadeAnim   = useRef(new Animated.Value(0)).current;
-  const slideAnim  = useRef(new Animated.Value(32)).current;
-  const logoScale  = useRef(new Animated.Value(0.85)).current;
+  const slideAnim  = useRef(new Animated.Value(40)).current;
+  const logoScale  = useRef(new Animated.Value(0.8)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -74,8 +75,7 @@ export default function LoginScreen() {
         return;
       }
     } catch (e) {
-      const msg = friendlyAuthError(e.code);
-      showError(msg);
+      showError(friendlyAuthError(e.code));
     } finally {
       setLoading(false);
     }
@@ -94,178 +94,158 @@ export default function LoginScreen() {
     }
   }
 
+  const inputBg = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
+  const inputBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(155,109,214,0.20)';
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+    <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Orbes de fondo — muy sutiles */}
-      <View style={styles.orb1} />
-      <View style={styles.orb2} />
+      {/* Fondo base igual que la app */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} />
+
+      {/* Gradiente sutil igual al del perfil */}
+      <LinearGradient
+        colors={isDark
+          ? ['rgba(180,141,224,0.28)', 'rgba(218,143,189,0.10)', 'rgba(0,0,0,0)']
+          : ['rgba(155,109,214,0.32)', 'rgba(212,112,154,0.14)', 'rgba(0,0,0,0)']}
+        style={[StyleSheet.absoluteFill]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.65 }}
+      />
+
+      {/* Orbes */}
+      <View style={[styles.orb1, { backgroundColor: colors.primary }]} />
+      <View style={[styles.orb2, { backgroundColor: colors.secondary }]} />
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <KeyboardAvoidingView
-        style={styles.inner}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={styles.inner} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
-        {/* Logo */}
-        <Animated.View style={[styles.logoContainer, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
-          <LinearGradient colors={Colors.gradientPrimary} style={styles.logoGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-            <Text style={styles.logoIcon}>♪</Text>
-          </LinearGradient>
-          <Text style={[styles.logoText, { color: colors.textPrimary }]}>daylist</Text>
-          <Text style={[styles.logoSub, { color: colors.textMuted }]}>tu diario musical</Text>
-        </Animated.View>
+          {/* Logo */}
+          <Animated.View style={[styles.logoContainer, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
+            <LinearGradient colors={colors.gradientPrimary} style={styles.logoGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Text style={styles.logoIcon}>♪</Text>
+            </LinearGradient>
+            <Text style={[styles.logoText, { color: colors.textPrimary }]}>daylist</Text>
+            <Text style={[styles.logoSub, { color: colors.textMuted }]}>tu diario musical</Text>
+          </Animated.View>
 
-        {/* Formulario */}
-        <Animated.View style={[styles.form, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <View style={styles.inputWrapper}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Correo</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.bg, color: colors.textPrimary, borderColor: colors.border }]}
-                placeholder="tu@correo.com"
-                placeholderTextColor={colors.textMuted}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
+          {/* Formulario */}
+          <Animated.View style={[styles.form, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <View style={[styles.card, { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.6)' }]}>
+              <BlurView tint={isDark ? 'dark' : 'light'} intensity={isDark ? 40 : 60} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl }]} />
+              <View style={[StyleSheet.absoluteFill, { borderRadius: Radius.xl, backgroundColor: isDark ? 'rgba(30,15,50,0.55)' : 'rgba(255,255,255,0.45)' }]} />
 
-            <View style={styles.inputWrapper}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Contraseña</Text>
-              <View style={[styles.passwordRow, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+              <View style={styles.inputWrapper}>
+                <Text style={[styles.inputLabel, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(80,50,120,0.8)' }]}>Correo</Text>
                 <TextInput
-                  style={[styles.passwordInput, { color: colors.textPrimary }]}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.textMuted}
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
+                  style={[styles.input, { backgroundColor: inputBg, color: isDark ? '#fff' : colors.textPrimary, borderColor: inputBorder }]}
+                  placeholder="tu@correo.com"
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)'}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
                 />
-                <Pressable onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn} hitSlop={8}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textMuted} />
-                </Pressable>
               </View>
+
+              <View style={styles.inputWrapper}>
+                <Text style={[styles.inputLabel, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(80,50,120,0.8)' }]}>Contraseña</Text>
+                <View style={[styles.passwordRow, { backgroundColor: inputBg, borderColor: inputBorder }]}>
+                  <TextInput
+                    style={[styles.passwordInput, { color: isDark ? '#fff' : colors.textPrimary }]}
+                    placeholder="••••••••"
+                    placeholderTextColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)'}
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  <Pressable onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn} hitSlop={8}>
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'} />
+                  </Pressable>
+                </View>
+              </View>
+
+              <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotBtn}>
+                <Text style={[styles.forgotText, { color: isDark ? 'rgba(200,170,240,0.9)' : colors.primary }]}>¿Olvidaste tu contraseña?</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85} style={{ marginTop: 4 }}>
+                <LinearGradient colors={colors.gradientPrimary} style={styles.btn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Iniciar sesión</Text>}
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotBtn}>
-              <Text style={[styles.forgotText, { color: colors.primary }]}>¿Olvidaste tu contraseña?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85} style={{ marginTop: 4 }}>
-              <LinearGradient colors={Colors.gradientPrimary} style={styles.btn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                {loading
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnText}>Iniciar sesión</Text>}
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          <Link href="/(auth)/register" asChild>
-            <TouchableOpacity style={styles.linkBtn}>
-              <Text style={[styles.linkText, { color: colors.textMuted }]}>
-                ¿No tienes cuenta?{'  '}
-                <Text style={styles.linkAccent}>Regístrate</Text>
-              </Text>
-            </TouchableOpacity>
-          </Link>
-        </Animated.View>
-      </KeyboardAvoidingView>
+            <Link href="/(auth)/register" asChild>
+              <TouchableOpacity style={styles.linkBtn}>
+                <Text style={[styles.linkText, { color: colors.textMuted }]}>
+                  ¿No tienes cuenta?{'  '}
+                  <Text style={[styles.linkAccent, { color: colors.primary }]}>Regístrate</Text>
+                </Text>
+              </TouchableOpacity>
+            </Link>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
 
-      <Dialog
-        visible={dialog.visible}
-        title="Aviso"
-        message={dialog.message}
-        onClose={() => setDialog({ visible: false, message: '' })}
-        buttons={[{ text: 'Entendido', style: 'primary' }]}
-      />
-      <Dialog
-        visible={resetSent}
-        title="Correo enviado"
-        message={`Se envió un enlace para restablecer tu contraseña a ${email.trim()}. Revisa tu bandeja de entrada.`}
-        onClose={() => setResetSent(false)}
-        buttons={[{ text: 'Entendido', style: 'primary' }]}
-      />
-      <Dialog
-        visible={showVerify}
-        title="Verifica tu correo"
-        message={`Tu correo aún no ha sido verificado. Se envió un nuevo enlace a ${email.trim()}. Ábrelo y vuelve a iniciar sesión.`}
-        onClose={() => setShowVerify(false)}
-        buttons={[{ text: 'Entendido', style: 'primary' }]}
-      />
+      <Dialog visible={dialog.visible} title="Aviso" message={dialog.message} onClose={() => setDialog({ visible: false, message: '' })} buttons={[{ text: 'Entendido', style: 'primary' }]} />
+      <Dialog visible={resetSent} title="Correo enviado" message={`Se envió un enlace para restablecer tu contraseña a ${email.trim()}. Revisa tu bandeja de entrada.`} onClose={() => setResetSent(false)} buttons={[{ text: 'Entendido', style: 'primary' }]} />
+      <Dialog visible={showVerify} title="Verifica tu correo" message={`Tu correo aún no ha sido verificado. Se envió un nuevo enlace a ${email.trim()}. Ábrelo y vuelve a iniciar sesión.`} onClose={() => setShowVerify(false)} buttons={[{ text: 'Entendido', style: 'primary' }]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  orb1: {
-    position: 'absolute', width: 320, height: 320, borderRadius: 160,
-    backgroundColor: Colors.primary, opacity: 0.07, top: -100, right: -100,
-  },
-  orb2: {
-    position: 'absolute', width: 260, height: 260, borderRadius: 130,
-    backgroundColor: Colors.secondary, opacity: 0.06, bottom: 80, left: -80,
-  },
-  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 28 },
+  container: { flex: 1 },
+  orb1: { position: 'absolute', width: 340, height: 340, borderRadius: 170, opacity: 0.25, top: -120, right: -100 },
+  orb2: { position: 'absolute', width: 280, height: 280, borderRadius: 140, opacity: 0.20, bottom: 60, left: -100 },
+  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
 
-  logoContainer: { alignItems: 'center', marginBottom: 40 },
+  logoContainer: { alignItems: 'center', marginBottom: 44 },
   logoGradient: {
-    width: 68, height: 68, borderRadius: 22,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
-    ...Shadow.md,
+    width: 72, height: 72, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    ...Shadow.lg,
   },
-  logoIcon: { fontSize: 32, color: '#fff' },
-  logoText: { fontSize: 40, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -1.5 },
-  logoSub:  { color: Colors.textMuted, fontSize: 14, marginTop: 4 },
+  logoIcon: { fontSize: 34, color: '#fff' },
+  logoText: { fontSize: 42, fontWeight: '800', color: '#fff', letterSpacing: -1.5 },
+  logoSub:  { color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 4 },
 
   form: { gap: 16 },
   card: {
-    backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
+    borderWidth: 1,
     padding: 24,
     gap: 16,
+    overflow: 'hidden',
     ...Shadow.lg,
+    shadowColor: '#7B4FBE',
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
   },
   inputWrapper: { gap: 6 },
-  inputLabel:   { color: Colors.textSecondary, fontSize: 12, fontWeight: '600', letterSpacing: 0.4 },
+  inputLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.4 },
   input: {
-    backgroundColor: Colors.bg,
     borderRadius: Radius.md,
     padding: 14,
-    color: Colors.textPrimary,
     fontSize: 15,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
+    borderWidth: 1,
   },
   passwordRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.bg,
     borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
+    borderWidth: 1,
   },
-  passwordInput: {
-    flex: 1,
-    padding: 14,
-    fontSize: 15,
-  },
-  eyeBtn: {
-    paddingHorizontal: 12,
-  },
-  btn: {
-    borderRadius: Radius.pill,
-    padding: 16,
-    alignItems: 'center',
-  },
+  passwordInput: { flex: 1, padding: 14, fontSize: 15 },
+  eyeBtn: { paddingHorizontal: 12 },
+  btn: { borderRadius: Radius.pill, padding: 16, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16, letterSpacing: 0.2 },
-
-  forgotBtn:  { alignSelf: 'flex-start' },
+  forgotBtn: { alignSelf: 'flex-start' },
   forgotText: { fontSize: 13, fontWeight: '600' },
-  linkBtn:    { alignItems: 'center', padding: 10 },
-  linkText:   { color: Colors.textMuted, fontSize: 14 },
-  linkAccent: { color: Colors.primary, fontWeight: '700' },
+  linkBtn: { alignItems: 'center', padding: 10 },
+  linkText: { fontSize: 14 },
+  linkAccent: { fontWeight: '700' },
 });

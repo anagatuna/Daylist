@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert, Image, StatusBar } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc, arrayUnion, arrayRemove, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,6 +32,7 @@ export default function UserProfileScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const me = user?.uid;
+  const insets = useSafeAreaInsets();
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -99,7 +101,7 @@ export default function UserProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={[]}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <FlatList
@@ -108,23 +110,32 @@ export default function UserProfileScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View>
-            <View style={[styles.headerShadow, { backgroundColor: colors.surface }]}>
-            <View style={[styles.header, { backgroundColor: colors.surface }]}>
+            <View style={[styles.hero, { backgroundColor: colors.bg, paddingTop: insets.top + 12 }]}>
               <LinearGradient
-                colors={['rgba(180,141,224,0.18)', 'rgba(218,143,189,0.08)', 'transparent']}
+                colors={isDark
+                  ? ['rgba(180,141,224,0.28)', 'rgba(218,143,189,0.10)', 'rgba(0,0,0,0)']
+                  : ['rgba(155,109,214,0.42)', 'rgba(212,112,154,0.20)', 'rgba(0,0,0,0)']}
                 style={StyleSheet.absoluteFill}
               />
-              <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.bg }]} onPress={() => router.back()} activeOpacity={0.7}>
+
+              {/* Botón volver */}
+              <TouchableOpacity
+                style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.38)', borderColor: 'transparent' }]}
+                onPress={() => router.back()}
+                activeOpacity={0.7}
+              >
                 <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
+
               <AvatarPreview uri={profile?.avatar} size={84} initial={profile?.displayName?.[0]} style={styles.avatarImg} />
               <Text style={[styles.name, { color: colors.textPrimary }]}>{profile?.displayName}</Text>
               {profile?.bio ? <Text style={[styles.bio, { color: colors.textSecondary }]}>{profile.bio}</Text> : null}
               <Text style={[styles.postCount, { color: colors.textMuted }]}>{posts.length} días publicados</Text>
+
               {(profile?.streak ?? 0) > 0 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
                   <Text style={{ fontSize: 16 }}>🔥</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#FF9500' }}>{profile.streak}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: colors.streak }}>{profile.streak}</Text>
                   <Text style={{ fontSize: 13, color: colors.textMuted }}>{profile.streak === 1 ? 'día de racha' : 'días de racha'}</Text>
                 </View>
               )}
@@ -136,20 +147,22 @@ export default function UserProfileScreen() {
 
               {uid !== me && (
                 isFriend ? (
-                  <TouchableOpacity style={[styles.friendBtnActive, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setShowRemove(true)}>
+                  <TouchableOpacity
+                    style={[styles.friendBtnActive, { backgroundColor: isDark ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.38)', borderColor: 'transparent' }]}
+                    onPress={() => setShowRemove(true)}
+                  >
                     <Ionicons name="person-remove-outline" size={16} color={colors.textMuted} />
                     <Text style={[styles.friendBtnTextActive, { color: colors.textMuted }]}>Quitar amigo</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity onPress={toggleFriend} activeOpacity={0.85}>
-                    <LinearGradient colors={Colors.gradientPrimary} style={styles.friendBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    <LinearGradient colors={colors.gradientPrimary} style={styles.friendBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                       <Ionicons name="person-add-outline" size={16} color="#fff" />
                       <Text style={styles.friendBtnText}>Agregar amigo</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 )
               )}
-            </View>
             </View>
             <StatsCard posts={posts} marginBottom={28} />
           </View>
@@ -191,9 +204,8 @@ export default function UserProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  headerShadow: { marginHorizontal: -16, marginBottom: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, backgroundColor: Colors.surface, ...Shadow.md },
-  header: { alignItems: 'center', paddingTop: 16, paddingBottom: 32, paddingHorizontal: 24, backgroundColor: Colors.surface, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
-  backBtn: { alignSelf: 'flex-start', width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center', marginBottom: 12, ...Shadow.sm },
+  hero: { alignItems: 'center', marginHorizontal: -16, marginBottom: 16, paddingHorizontal: 24, paddingBottom: 32 },
+  backBtn: { alignSelf: 'flex-start', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 1 },
   avatarImg: { width: 84, height: 84, borderRadius: 42, marginBottom: 12, ...Shadow.md },
   avatar: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 12, backgroundColor: Colors.border },
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 32 },
