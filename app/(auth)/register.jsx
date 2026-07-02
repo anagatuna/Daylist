@@ -44,6 +44,14 @@ export default function RegisterScreen() {
     ]).start();
   }, []);
 
+  const passwordChecks = [
+    { key: 'length', label: 'Al menos 6 caracteres', test: (p) => p.length >= 6 },
+    { key: 'upper',  label: 'Una letra mayúscula',   test: (p) => /[A-Z]/.test(p) },
+    { key: 'number', label: 'Un número',              test: (p) => /[0-9]/.test(p) },
+    { key: 'symbol', label: 'Un signo (!@#$...)',      test: (p) => /[^A-Za-z0-9]/.test(p) },
+  ];
+  const isPasswordSecure = passwordChecks.every(c => c.test(password));
+
   function showError(msg) { setDialog({ visible: true, message: msg }); }
 
   function friendlyAuthError(code) {
@@ -53,7 +61,8 @@ export default function RegisterScreen() {
       case 'auth/invalid-email':
         return 'El correo no tiene un formato válido.';
       case 'auth/weak-password':
-        return 'La contraseña es muy débil. Usa al menos 6 caracteres.';
+      case 'auth/password-does-not-meet-requirements':
+        return 'La contraseña es muy débil. Debe tener al menos 6 caracteres, una mayúscula, un número y un signo.';
       case 'auth/too-many-requests':
         return 'Demasiados intentos. Espera un momento e intenta de nuevo.';
       case 'auth/network-request-failed':
@@ -70,7 +79,7 @@ export default function RegisterScreen() {
     if (trimmedName.length < 3) return showError('El nombre debe tener al menos 3 caracteres.');
     if (trimmedName.length > 20) return showError('El nombre no puede tener más de 20 caracteres.');
     if (!/^[a-zA-Z0-9_.]+$/.test(trimmedName)) return showError('Solo letras, números, puntos y guiones bajos.');
-    if (password.length < 6) return showError('La contraseña debe tener al menos 6 caracteres.');
+    if (!isPasswordSecure) return showError('La contraseña debe cumplir todos los requisitos de seguridad.');
     setLoading(true);
     try {
       const { user } = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
@@ -163,6 +172,34 @@ export default function RegisterScreen() {
                     <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'} />
                   </Pressable>
                 </View>
+
+                {password.length > 0 && (
+                  <View style={styles.requirementsList}>
+                    {passwordChecks.map(({ key, label, test }) => {
+                      const met = test(password);
+                      return (
+                        <View key={key} style={styles.requirementRow}>
+                          <Ionicons
+                            name={met ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={14}
+                            color={met ? colors.primary : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)')}
+                          />
+                          <Text
+                            style={[
+                              styles.requirementText,
+                              {
+                                color: met ? colors.primary : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)'),
+                                fontWeight: met ? '700' : '400',
+                              },
+                            ]}
+                          >
+                            {label}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
 
               <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85} style={{ marginTop: 4 }}>
@@ -236,6 +273,9 @@ const styles = StyleSheet.create({
   },
   passwordInput: { flex: 1, padding: 14, fontSize: 15 },
   eyeBtn: { paddingHorizontal: 12 },
+  requirementsList: { marginTop: 8, gap: 5 },
+  requirementRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  requirementText: { fontSize: 12 },
   btn: { borderRadius: Radius.pill, padding: 16, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16, letterSpacing: 0.2 },
   linkBtn: { alignItems: 'center', padding: 10, marginTop: 8 },
