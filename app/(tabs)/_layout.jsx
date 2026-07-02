@@ -68,6 +68,7 @@ function CustomTabBar({ state, navigation, colors, pendingRequests, avatar }) {
           tint={colors.navBar.tint}
           intensity={colors.navBar.intensity}
           experimentalBlurMethod="dimezisBlurView"
+          blurReductionFactor={2}
           style={[StyleSheet.absoluteFill, styles.blurBg, { borderColor: colors.navBar.border }]}
         >
           <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.navBar.overlay, borderRadius: 32 }]} />

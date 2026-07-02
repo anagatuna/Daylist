@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Image, ActivityIndicator, Alert, KeyboardAvoidingView,
+  Image, ActivityIndicator, KeyboardAvoidingView,
   Platform, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -9,10 +9,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import Dialog from '@/components/Dialog';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -24,6 +25,65 @@ export default function EditProfileScreen() {
   const [avatar, setAvatar] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [dialog, setDialog] = useState({ visible: false, title: '', message: '' });
+
+  function showAlert(title, message) { setDialog({ visible: true, title, message: message ?? '' }); }
+
+  const passwordChecks = [
+    { key: 'length', label: 'Al menos 6 caracteres', test: (p) => p.length >= 6 },
+    { key: 'upper',  label: 'Una letra mayúscula',   test: (p) => /[A-Z]/.test(p) },
+    { key: 'number', label: 'Un número',              test: (p) => /[0-9]/.test(p) },
+    { key: 'symbol', label: 'Un signo (!@#$...)',      test: (p) => /[^A-Za-z0-9]/.test(p) },
+  ];
+  const isNewPasswordSecure = passwordChecks.every(c => c.test(newPassword));
+
+  function friendlyPasswordError(code) {
+    switch (code) {
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'La contraseña actual es incorrecta.';
+      case 'auth/too-many-requests':
+        return 'Demasiados intentos. Espera un momento e intenta de nuevo.';
+      case 'auth/weak-password':
+      case 'auth/password-does-not-meet-requirements':
+        return 'La nueva contraseña es muy débil. Debe tener al menos 6 caracteres, una mayúscula, un número y un signo.';
+      case 'auth/requires-recent-login':
+        return 'Por seguridad, cierra sesión e inicia de nuevo antes de cambiar tu contraseña.';
+      case 'auth/network-request-failed':
+        return 'Sin conexión a internet. Revisa tu red e intenta de nuevo.';
+      default:
+        return 'No se pudo actualizar la contraseña. Intenta de nuevo.';
+    }
+  }
+
+  async function handleChangePassword() {
+    if (!currentPassword) return showAlert('Aviso', 'Ingresa tu contraseña actual');
+    if (!isNewPasswordSecure) return showAlert('Aviso', 'La nueva contraseña debe cumplir todos los requisitos de seguridad.');
+    if (newPassword !== confirmPassword) return showAlert('Aviso', 'Las contraseñas nuevas no coinciden');
+    setChangingPassword(true);
+    try {
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordSection(false);
+      showAlert('Listo', 'Tu contraseña se actualizó correctamente.');
+    } catch (e) {
+      showAlert('Error', friendlyPasswordError(e.code));
+    } finally {
+      setChangingPassword(false);
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -38,7 +98,7 @@ export default function EditProfileScreen() {
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería');
+      showAlert('Permiso necesario', 'Necesitamos acceso a tu galería');
       return;
     }
     setUploading(true);
@@ -53,14 +113,14 @@ export default function EditProfileScreen() {
       if (result.canceled || !result.assets?.[0]?.base64) return;
       setAvatar(`data:image/jpeg;base64,${result.assets[0].base64}`);
     } catch (e) {
-      Alert.alert('Error procesando imagen', e.message);
+      showAlert('Error procesando imagen', e.message);
     } finally {
       setUploading(false);
     }
   }
 
   async function save() {
-    if (!displayName.trim()) return Alert.alert('El nombre no puede estar vacío');
+    if (!displayName.trim()) return showAlert('Aviso', 'El nombre no puede estar vacío');
     setSaving(true);
     try {
       await Promise.all([
@@ -73,7 +133,7 @@ export default function EditProfileScreen() {
       ]);
       router.back();
     } catch (e) {
-      Alert.alert('Error guardando', e.message);
+      showAlert('Error guardando', e.message);
     } finally {
       setSaving(false);
     }
@@ -135,8 +195,94 @@ export default function EditProfileScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.securityToggle}
+            onPress={() => setShowPasswordSection(s => !s)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.label, { color: colors.textMuted, marginBottom: 0 }]}>SEGURIDAD</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>Cambiar contraseña</Text>
+              <Ionicons name={showPasswordSection ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primary} />
+            </View>
+          </TouchableOpacity>
+
+          {showPasswordSection && (
+            <View style={styles.passwordSection}>
+              {[
+                { label: 'Contraseña actual', value: currentPassword, setter: setCurrentPassword, show: showCurrentPassword, setShow: setShowCurrentPassword },
+                { label: 'Nueva contraseña',  value: newPassword,     setter: setNewPassword,     show: showNewPassword,     setShow: setShowNewPassword },
+              ].map(({ label, value, setter, show, setShow }) => (
+                <View key={label} style={styles.field}>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>{label.toUpperCase()}</Text>
+                  <View style={[styles.passwordRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <TextInput
+                      style={[styles.passwordInput, { color: colors.textPrimary }]}
+                      value={value}
+                      onChangeText={setter}
+                      secureTextEntry={!show}
+                      autoCapitalize="none"
+                      placeholderTextColor={colors.textMuted}
+                    />
+                    <TouchableOpacity onPress={() => setShow(s => !s)} style={styles.eyeBtn} hitSlop={8}>
+                      <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+
+              {newPassword.length > 0 && (
+                <View style={styles.requirementsList}>
+                  {passwordChecks.map(({ key, label, test }) => {
+                    const met = test(newPassword);
+                    return (
+                      <View key={key} style={styles.requirementRow}>
+                        <Ionicons
+                          name={met ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={14}
+                          color={met ? colors.primary : colors.textMuted}
+                        />
+                        <Text style={{ fontSize: 12, color: met ? colors.primary : colors.textMuted, fontWeight: met ? '700' : '400' }}>
+                          {label}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>CONFIRMAR NUEVA CONTRASEÑA</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.card, color: colors.textPrimary, borderColor: colors.border }]}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+
+              <TouchableOpacity onPress={handleChangePassword} disabled={changingPassword} activeOpacity={0.85}>
+                <LinearGradient colors={Colors.gradientPrimary} style={styles.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  {changingPassword
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={styles.saveBtnText}>Actualizar contraseña</Text>}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Dialog
+        visible={dialog.visible}
+        title={dialog.title}
+        message={dialog.message}
+        onClose={() => setDialog(d => ({ ...d, visible: false }))}
+        buttons={[{ text: 'Entendido', style: 'primary' }]}
+      />
     </View>
   );
 }
@@ -157,4 +303,19 @@ const styles = StyleSheet.create({
   charCount: { color: Colors.textMuted, fontSize: 11, textAlign: 'right', marginTop: 4 },
   saveBtn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', marginTop: 8 },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+
+  securityToggle: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 32, paddingTop: 20,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border,
+  },
+  passwordSection: { marginTop: 16 },
+  passwordRow: {
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, ...Shadow.sm,
+  },
+  passwordInput: { flex: 1, padding: 15, fontSize: 15 },
+  eyeBtn: { paddingHorizontal: 12 },
+  requirementsList: { marginTop: -10, marginBottom: 16, gap: 5 },
+  requirementRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });
