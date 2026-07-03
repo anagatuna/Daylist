@@ -16,44 +16,65 @@ const ICONS = {
   profile: { focused: 'person', outline: 'person-outline' },
 };
 
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#', '');
+  const bigint = parseInt(h, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function TabButton({ name, focused, onPress, colors, count, avatar }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const pillAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
   const tint = focused ? colors.navBar.activeDot : colors.navBar.inactiveTint;
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.spring(scaleAnim, { toValue: 1.18, useNativeDriver: true, tension: 220, friction: 6 }),
-      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 220, friction: 6 }),
-    ]).start();
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 10 }).start();
+    if (focused) {
+      scaleAnim.setValue(0.85);
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 260, friction: 7 }).start();
+    }
+    Animated.timing(pillAnim, { toValue: focused ? 1 : 0, duration: 180, useNativeDriver: true }).start();
   }, [focused]);
 
   const isProfile = name === 'profile';
+  const activeBg = hexToRgba(colors.navBar.activeDot, colors.navBar.tint === 'dark' ? 0.24 : 0.18);
 
   return (
-    <TouchableOpacity style={styles.tabBtn} onPress={onPress} activeOpacity={0.7}>
-      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        {isProfile ? (
-          focused ? (
-            <LinearGradient colors={colors.gradientPrimary} style={styles.avatarRing} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-              <View style={styles.avatarRingInner}>
-                {avatar ? <Image source={{ uri: avatar }} style={styles.avatarImg} /> : <Ionicons name="person" size={17} color="#fff" />}
-              </View>
-            </LinearGradient>
-          ) : avatar ? (
-            <Image source={{ uri: avatar }} style={styles.avatarImgPlain} />
+    <TouchableOpacity style={styles.tabBtn} onPress={onPress} activeOpacity={0.75}>
+      <View style={styles.iconWrap}>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.pill,
+            { backgroundColor: activeBg, opacity: pillAnim, transform: [{ scale: pillAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] },
+          ]}
+        />
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          {isProfile ? (
+            focused ? (
+              <LinearGradient colors={colors.gradientPrimary} style={styles.avatarRing} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                <View style={styles.avatarRingInner}>
+                  {avatar ? <Image source={{ uri: avatar }} style={styles.avatarImg} /> : <Ionicons name="person" size={15} color="#fff" />}
+                </View>
+              </LinearGradient>
+            ) : avatar ? (
+              <Image source={{ uri: avatar }} style={styles.avatarImgPlain} />
+            ) : (
+              <Ionicons name="person-outline" size={24} color={tint} />
+            )
           ) : (
-            <Ionicons name="person-outline" size={28} color={tint} />
-          )
-        ) : (
-          <Ionicons name={focused ? ICONS[name].focused : ICONS[name].outline} size={28} color={tint} />
-        )}
-        {count > 0 && (
-          <View style={[styles.badge, { backgroundColor: colors.danger }]}>
-            <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
-          </View>
-        )}
-      </Animated.View>
-      <View style={[styles.dot, { backgroundColor: focused ? colors.navBar.activeDot : 'transparent' }]} />
+            <Ionicons name={focused ? ICONS[name].focused : ICONS[name].outline} size={24} color={tint} />
+          )}
+          {count > 0 && (
+            <View style={[styles.badge, { backgroundColor: colors.danger, borderColor: colors.navBar.overlay }]}>
+              <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
+            </View>
+          )}
+        </Animated.View>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -138,19 +159,21 @@ const styles = StyleSheet.create({
   },
   bar: {
     flexDirection: 'row',
-    width: '78%',
-    maxWidth: 320,
-    height: 64,
-    borderRadius: 32,
+    alignItems: 'center',
+    width: '58%',
+    minWidth: 220,
+    maxWidth: 260,
+    height: 56,
+    borderRadius: 28,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowRadius: 20,
     elevation: 8,
   },
   blurBg: {
-    borderRadius: 32,
+    borderRadius: 28,
     borderWidth: StyleSheet.hairlineWidth,
   },
   glassHighlight: {
@@ -167,44 +190,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconWrap: {
+    width: 44,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pill: {
+    position: 'absolute',
+    width: 40,
+    height: 36,
+    borderRadius: 18,
+  },
   avatarRing: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarRingInner: {
-    width: 27,
-    height: 27,
-    borderRadius: 13.5,
+    width: 23,
+    height: 23,
+    borderRadius: 11.5,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     backgroundColor: 'rgba(0,0,0,0.15)',
   },
   avatarImg: {
-    width: 27,
-    height: 27,
-    borderRadius: 13.5,
+    width: 23,
+    height: 23,
+    borderRadius: 11.5,
   },
   avatarImgPlain: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  dot: {
-    position: 'absolute',
-    bottom: -9,
-    alignSelf: 'center',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
   badge: {
-    position: 'absolute', top: -4, right: -10,
-    borderRadius: 8, minWidth: 16, height: 16,
+    position: 'absolute', top: -3, right: -8,
+    borderRadius: 8, minWidth: 15, height: 15,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
+    borderWidth: 1.5,
   },
-  badgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
+  badgeText: { color: '#fff', fontSize: 8.5, fontWeight: '700' },
 });

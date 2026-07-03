@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
 import StreakBadge from '@/components/StreakBadge';
+import StreakFreezeBadge from '@/components/StreakFreezeBadge';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -48,6 +49,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [commentCounts, setCommentCounts] = useState({});
   const [streak, setStreak] = useState(0);
+  const [streakFreezes, setStreakFreezes] = useState(0);
 
   async function loadData() {
     if (!user) return;
@@ -55,6 +57,7 @@ export default function HomeScreen() {
     const userData = userDoc.data() ?? {};
     const friends = userData.friends ?? [];
     setStreak(userData.streak ?? 0);
+    setStreakFreezes(userData.streakFreezes ?? 0);
 
     const myQ = query(
       collection(db, 'posts'),
@@ -159,6 +162,7 @@ export default function HomeScreen() {
             <Text style={[styles.logo, { color: colors.textPrimary }]}>daylist</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <StreakBadge streak={streak} size="sm" showLabel={false} />
+              <StreakFreezeBadge count={streakFreezes} size="sm" />
               <TouchableOpacity onPress={() => router.push('/post/create')} style={[styles.addBtn, { backgroundColor: colors.card }]}>
                 <Ionicons name="add" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
