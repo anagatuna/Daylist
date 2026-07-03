@@ -19,6 +19,7 @@ import Dialog from '@/components/Dialog';
 import ReminderModal, { REMINDER_KEY, formatReminderTime } from '@/components/ReminderModal';
 import StatsCard from '@/components/StatsCard';
 import StreakBadge from '@/components/StreakBadge';
+import StreakFreezeBadge from '@/components/StreakFreezeBadge';
 import SpotifyTopSection from '@/components/SpotifyTopSection';
 import { useSpotifyAuth } from '@/hooks/useSpotifyAuth';
 import { useSpotifyTopItems } from '@/hooks/useSpotifyTopItems';
@@ -47,6 +48,7 @@ export default function ProfileScreen() {
   const [avatar, setAvatar] = useState(null);
   const [streak, setStreak] = useState(0);
   const [longestStreak, setLongestStreak] = useState(0);
+  const [streakFreezes, setStreakFreezes] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showLogout, setShowLogout] = useState(false);
   const [showReminder, setShowReminder] = useState(false);
@@ -83,6 +85,7 @@ export default function ProfileScreen() {
     setAvatar(data.avatar ?? null);
     setStreak(data.streak ?? 0);
     setLongestStreak(data.longestStreak ?? 0);
+    setStreakFreezes(data.streakFreezes ?? 0);
     const loadedPosts = postsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     setPosts(loadedPosts);
     const counts = {};
@@ -177,10 +180,15 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
 
-              {longestStreak > 0 && (
-                <Text style={[styles.longestStreak, { color: colors.textMuted }]}>
-                  Mejor racha: {longestStreak} {longestStreak === 1 ? 'día' : 'días'}
-                </Text>
+              {(longestStreak > 0 || streakFreezes > 0) && (
+                <View style={styles.streakMetaRow}>
+                  {longestStreak > 0 && (
+                    <Text style={[styles.longestStreak, { color: colors.textMuted }]}>
+                      Mejor racha: {longestStreak} {longestStreak === 1 ? 'día' : 'días'}
+                    </Text>
+                  )}
+                  <StreakFreezeBadge count={streakFreezes} size="sm" />
+                </View>
               )}
 
               {/* Theme selector */}
@@ -318,7 +326,8 @@ const styles = StyleSheet.create({
   statNum:     { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
   statLabel:   { color: Colors.textMuted, fontSize: 11, marginTop: 1 },
   statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: Colors.border },
-  longestStreak: { fontSize: 12, marginTop: 10, fontWeight: '500' },
+  streakMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
+  longestStreak: { fontSize: 12, fontWeight: '500' },
 
   themeRow: {
     flexDirection: 'row', justifyContent: 'center', gap: 8,

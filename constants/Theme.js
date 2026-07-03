@@ -13,6 +13,8 @@ export const LightColors = {
   danger:  '#FF3B30',
   streak:  '#FF9500',
   streakAlt: '#FF5722',
+  freeze:   '#0A84FF',
+  freezeBg: 'rgba(10,132,255,0.12)',
   spotify: '#1DB954',
 
   textPrimary:   '#1C1C1E',
@@ -67,6 +69,8 @@ export const DarkColors = {
   danger:  '#FF453A',
   streak:  '#FF9F0A',
   streakAlt: '#FF6B35',
+  freeze:   '#64D2FF',
+  freezeBg: 'rgba(100,210,255,0.16)',
   spotify: '#1ED760',
 
   textPrimary:   '#ECECEC',

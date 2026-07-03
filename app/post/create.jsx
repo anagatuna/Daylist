@@ -49,6 +49,8 @@ export default function CreatePostScreen() {
   const [alreadyPosted, setAlreadyPosted] = useState(false);
   const [showStreak, setShowStreak] = useState(false);
   const [streakCount, setStreakCount] = useState(0);
+  const [freezeAwarded, setFreezeAwarded] = useState(false);
+  const [freezesUsed, setFreezesUsed] = useState(0);
   // Cargar post de hoy si ya existe
   useEffect(() => {
     async function loadToday() {
@@ -217,8 +219,10 @@ export default function CreatePostScreen() {
         setAlreadyPosted(true);
         cancelStreakReminder().catch(() => {});
         try {
-          const { current } = await syncStreakToProfile(user.uid);
+          const { current, freezeAwarded, freezesUsed } = await syncStreakToProfile(user.uid);
           setStreakCount(current);
+          setFreezeAwarded(freezeAwarded);
+          setFreezesUsed(freezesUsed);
           setShowStreak(true);
           return;
         } catch {}
@@ -421,6 +425,8 @@ export default function CreatePostScreen() {
       <StreakCelebration
         visible={showStreak}
         streak={streakCount}
+        freezeAwarded={freezeAwarded}
+        freezesUsed={freezesUsed}
         onClose={() => { setShowStreak(false); router.replace('/(tabs)'); }}
       />
 

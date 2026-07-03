@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Radius } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
-export default function StreakCelebration({ visible, streak, onClose }) {
+export default function StreakCelebration({ visible, streak, freezeAwarded, freezesUsed, onClose }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const opacity = useRef(new Animated.Value(0)).current;
@@ -90,6 +91,23 @@ export default function StreakCelebration({ visible, streak, onClose }) {
               });
             })()}
           </View>
+
+          {freezesUsed > 0 && (
+            <View style={[s.banner, { backgroundColor: colors.freezeBg }]}>
+              <Ionicons name="snow" size={16} color={colors.freeze} />
+              <Text style={[s.bannerText, { color: colors.freeze }]}>
+                {freezesUsed === 1
+                  ? 'Un protector salvó tu racha de un día perdido'
+                  : `${freezesUsed} protectores salvaron tu racha`}
+              </Text>
+            </View>
+          )}
+          {freezeAwarded && (
+            <View style={[s.banner, { backgroundColor: colors.freezeBg }]}>
+              <Ionicons name="snow" size={16} color={colors.freeze} />
+              <Text style={[s.bannerText, { color: colors.freeze }]}>¡Ganaste un protector de racha!</Text>
+            </View>
+          )}
         </Animated.View>
       </View>
 
@@ -140,6 +158,16 @@ const s = StyleSheet.create({
   dotActive: { backgroundColor: '#FF9500' },
   dotToday: { borderWidth: 2, borderColor: '#FF5722' },
   dotCheck: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: Radius.pill,
+  },
+  bannerText: { fontSize: 13, fontWeight: '700' },
   footer: {
     paddingHorizontal: 32,
   },
