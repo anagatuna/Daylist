@@ -7,16 +7,6 @@
       "channel": "preview",
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyD3gGCQ_B1PJyrITQx-x-fq31x4RaQo2OM",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "daylist-7acd4.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "daylist-7acd4",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "daylist-7acd4.firebasestorage.app",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "257323551486",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:257323551486:web:53365b2c2fc969ca2b73af",
-        "EXPO_PUBLIC_SPOTIFY_CLIENT_ID": "631643a3111645e990ace8939008b98c",
-        "EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET": "852a01cb5af04ebbaef563b1626f15c4"
       }
     },
     "production": {

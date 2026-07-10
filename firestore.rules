@@ -13,7 +13,10 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isAuth();
       allow create: if isOwner(uid);
-      allow update: if isAuth(); // amigos pueden enviar solicitudes
+      // El dueño puede editar todo; cualquier usuario autenticado puede editar
+      // solo los campos friends/friendRequests (para solicitudes y amistades)
+      allow update: if isOwner(uid)
+                    || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends', 'friendRequests']));
     }
 
     match /posts/{postId} {
