@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 import { auth } from '@/lib/firebase';
 import {
   getSpotifyAuthConfig,
@@ -25,6 +27,12 @@ export function useSpotifyAuth() {
   );
 
   useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    WebBrowser.warmUpAsync().catch(() => {});
+    return () => { WebBrowser.coolDownAsync().catch(() => {}); };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     async function load() {
       if (!uid) { setChecking(false); return; }
@@ -46,10 +54,12 @@ export function useSpotifyAuth() {
     if (!response || !uid) return;
     if (response.type === 'success') {
       exchangeCodeForTokens(uid, response.params.code, request.codeVerifier)
-        .then(() => fetchSpotifyProfile(uid))
-        .then(p => { setProfile(p); setConnected(true); })
-        .catch(err => setError(err))
-        .finally(() => setConnecting(false));
+        .then(() => {
+          setConnected(true);
+          setConnecting(false);
+          fetchSpotifyProfile(uid).then(p => { if (p) setProfile(p); }).catch(() => {});
+        })
+        .catch(err => { setError(err); setConnecting(false); });
     } else if (response.type === 'error') {
       setError(response.error);
       setConnecting(false);

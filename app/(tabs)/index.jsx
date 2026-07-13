@@ -68,14 +68,20 @@ export default function HomeScreen() {
     setMyPost(mySnap.empty ? null : { id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
 
     if (friends.length > 0) {
-      const fQ = query(
+      // Firestore's 'in' operator only supports up to 10 values, so friends
+      // are queried in chunks of 10 and merged/re-sorted client-side.
+      const friendChunks = [];
+      for (let i = 0; i < friends.length; i += 10) friendChunks.push(friends.slice(i, i + 10));
+
+      const fSnaps = await Promise.all(friendChunks.map(chunk => getDocs(query(
         collection(db, 'posts'),
-        where('uid', 'in', friends.slice(0, 10)),
+        where('uid', 'in', chunk),
         where('date', '==', today),
         orderBy('createdAt', 'desc')
-      );
-      const fSnap = await getDocs(fQ);
-      const posts = fSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      ))));
+      const posts = fSnaps
+        .flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
+        .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
 
       // Enriquecer con avatar si el post no lo tiene guardado
       const enriched = await Promise.all(posts.map(async p => {
