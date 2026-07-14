@@ -396,7 +396,7 @@ export default function CreatePostScreen() {
       {/* Phrase modal */}
       <SheetModal visible={!!phraseModal} onClose={() => { Keyboard.dismiss(); setPhraseModal(null); }}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={[styles.modal, { flex: 1, backgroundColor: colors.bg }]}>
+          <View style={[styles.modal, { backgroundColor: colors.bg }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Agregar frase</Text>
               <TouchableOpacity onPress={() => { Keyboard.dismiss(); setPhraseModal(null); }}>

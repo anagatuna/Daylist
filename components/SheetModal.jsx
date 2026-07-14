@@ -57,6 +57,7 @@ function AndroidSheet({ visible, onClose, children, fullHeight }) {
       animationType="slide"
       transparent
       statusBarTranslucent
+      navigationBarTranslucent
       onShow={() => setReady(true)}
       onRequestClose={onClose}>
       <View style={styles.root}>

@@ -2,12 +2,26 @@ import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
+import * as Updates from 'expo-updates';
 import { useAuth } from '@/hooks/useAuth';
 import { registerPushToken, scheduleStreakReminder } from '@/lib/notifications';
 import { runStreakMigration } from '@/lib/migrateStreaks';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
+
+async function applyPendingUpdate() {
+  if (__DEV__ || !Updates.isEnabled) return;
+  try {
+    const { isAvailable } = await Updates.checkForUpdateAsync();
+    if (isAvailable) {
+      await Updates.fetchUpdateAsync();
+      await Updates.reloadAsync();
+    }
+  } catch {
+    // sin conexión u otro error: se usa el bundle actual
+  }
+}
 
 function RootNav() {
   const { user, loading } = useAuth();
@@ -81,6 +95,10 @@ function RootNav() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    applyPendingUpdate();
+  }, []);
+
   return (
     <ThemeProvider>
       <RootNav />
