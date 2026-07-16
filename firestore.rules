@@ -19,6 +19,12 @@ service cloud.firestore {
                     || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends', 'friendRequests']));
     }
 
+    // Tokens de Spotify sincronizados entre dispositivos, solo para esta cuenta
+    // (el resto de usuarios conecta Spotify por dispositivo, vía storage local).
+    match /spotifyTokens/{uid} {
+      allow read, write: if isAuth() && isOwner(uid) && request.auth.token.email == 'altc3456@gmail.com';
+    }
+
     match /posts/{postId} {
       allow read: if isAuth();
       allow create: if isOwner(request.resource.data.uid);
