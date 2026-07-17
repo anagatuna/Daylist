@@ -215,7 +215,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
 
-            {!loading && posts.length > 0 && <StatsCard posts={posts} />}
+            {!loading && posts.length > 0 && <StatsCard posts={posts} marginBottom={spotifyConnected ? 16 : 0} />}
             {spotifyConnected && (
               <SpotifyTopSection tracks={spotifyTracks} artists={spotifyArtists} loading={spotifyLoading} error={spotifyError} />
             )}

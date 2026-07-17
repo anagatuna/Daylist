@@ -73,12 +73,7 @@ export default function AudioPlayer({ previewUrl, startSec = 0, endSec = null })
   const progress = Math.min(elapsed / segmentDuration, 1);
 
   if (!previewUrl) {
-    return (
-      <View style={styles.noPreviewRow}>
-        <Ionicons name="musical-note-outline" size={14} color={colors.textMuted} />
-        <Text style={[styles.noPreviewText, { color: colors.textMuted }]}>Preview no disponible</Text>
-      </View>
-    );
+    return null;
   }
 
   return (
@@ -112,6 +107,4 @@ const styles = StyleSheet.create({
   barBg: { flex: 1, height: 2, backgroundColor: Colors.border, borderRadius: 1 },
   barFill: { height: 2, backgroundColor: Colors.primary, borderRadius: 1 },
   time: { color: Colors.textMuted, fontSize: 10, minWidth: 36 },
-  noPreviewRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  noPreviewText: { color: Colors.textMuted, fontSize: 11 },
 });

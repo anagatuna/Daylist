@@ -41,7 +41,8 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
     setShowLyrics(true);
     if (lyrics !== null) return;
     setLoadingLyrics(true);
-    const text = await getLyrics(song.name, song.artist);
+    const durationSec = song.durationMs ? song.durationMs / 1000 : null;
+    const text = await getLyrics(song.name, song.artist, durationSec);
     setLyrics(text);
     setLoadingLyrics(false);
   }

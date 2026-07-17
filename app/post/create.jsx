@@ -175,6 +175,8 @@ export default function CreatePostScreen() {
   }
 
   async function publish() {
+    if (saving) return;
+
     const filled = SLOTS.filter((sl) => songs[sl.key]);
     if (filled.length === 0) return Alert.alert('Agrega al menos una canción');
 
@@ -182,17 +184,17 @@ export default function CreatePostScreen() {
     if (!user) return;
     const today = localDateStr();
 
-    // Check if user already posted today
-    const q = query(
-      collection(db, 'posts'),
-      where('uid', '==', user.uid),
-      where('date', '==', today)
-    );
-    const snap = await getDocs(q);
-    const existingDoc = snap.empty ? null : snap.docs[0];
-
     setSaving(true);
     try {
+      // Check if user already posted today
+      const q = query(
+        collection(db, 'posts'),
+        where('uid', '==', user.uid),
+        where('date', '==', today)
+      );
+      const snap = await getDocs(q);
+      const existingDoc = snap.empty ? null : snap.docs[0];
+
       const songData = {};
       SLOTS.forEach(({ key }) => {
         if (songs[key]) songData[key] = songs[key];

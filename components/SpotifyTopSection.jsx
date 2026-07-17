@@ -13,13 +13,14 @@ export default function SpotifyTopSection({ tracks, artists, loading, error }) {
 
   return (
     <View style={[s.wrap, { marginBottom: 16, shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacitySm }]}>
-      <View style={[s.card, { borderColor: colors.cardGlass.border }]}>
+      <View style={[s.card, { borderColor: colors.spotify + '33' }]}>
         <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, s.cardBg]} />
         <View style={[StyleSheet.absoluteFill, s.cardBg, { backgroundColor: colors.cardGlass.overlay }]} />
+        <View style={[StyleSheet.absoluteFill, s.cardBg, { backgroundColor: colors.spotify + '0F' }]} />
 
-        <View style={s.header}>
+        <View style={[s.header, { backgroundColor: colors.spotify + '1F' }]}>
           <MaterialCommunityIcons name="spotify" size={14} color={colors.spotify} />
-          <Text style={[s.title, { color: colors.textMuted }]}>TU SPOTIFY</Text>
+          <Text style={[s.title, { color: colors.spotify }]}>TU SPOTIFY</Text>
         </View>
 
         {loading && !hasData ? (
@@ -79,7 +80,12 @@ const s = StyleSheet.create({
   wrap: { borderRadius: Radius.md, ...Shadow.sm, shadowRadius: 10 },
   card: { borderRadius: Radius.md, padding: 16, borderWidth: 1, gap: 12, overflow: 'hidden' },
   cardBg: { borderRadius: Radius.md },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignSelf: 'flex-start',
+    borderRadius: Radius.pill,
+    paddingHorizontal: 8, paddingVertical: 4,
+  },
   title: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
   message: { fontSize: 13 },
   messageRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
