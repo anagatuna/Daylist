@@ -13,7 +13,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, update
 import { auth, db } from '@/lib/firebase';
 import { searchSpotifyTracks, serializeSpotifyTrack } from '@/lib/spotify';
 import { fetchTopArtists } from '@/lib/spotifyAuth';
-import { useSpotifyAuth } from '@/hooks/useSpotifyAuth';
+import { useSpotifyAuth, friendlySpotifyError } from '@/hooks/useSpotifyAuth';
 import { notifyFriends, cancelStreakReminder } from '@/lib/notifications';
 import { localDateStr } from '@/lib/date';
 import { getLyrics } from '@/lib/musixmatch';
@@ -82,6 +82,10 @@ export default function CreatePostScreen() {
     }
     loadToday();
   }, []);
+
+  useEffect(() => {
+    if (spotify.error) Alert.alert('Error de Spotify', friendlySpotifyError(spotify.error));
+  }, [spotify.error]);
 
   // Artistas más escuchados, para priorizarlos en la búsqueda cuando el nombre es genérico
   useEffect(() => {

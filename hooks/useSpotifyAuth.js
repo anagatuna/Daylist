@@ -12,6 +12,13 @@ import {
   isSpotifyConnected,
 } from '@/lib/spotifyAuth';
 
+export function friendlySpotifyError(err) {
+  const code = err?.code ?? err?.params?.error;
+  if (code === 'access_denied') return 'Cancelaste la conexión con Spotify.';
+  if (err?.message?.toLowerCase().includes('network')) return 'Sin conexión a internet. Intenta de nuevo.';
+  return 'No se pudo conectar con Spotify. Intenta de nuevo.';
+}
+
 export function useSpotifyAuth() {
   const uid = auth.currentUser?.uid ?? null;
   const [connected, setConnected] = useState(false);

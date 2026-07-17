@@ -13,15 +13,8 @@ import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updateP
 import { auth, db } from '@/lib/firebase';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useSpotifyAuth } from '@/hooks/useSpotifyAuth';
+import { useSpotifyAuth, friendlySpotifyError } from '@/hooks/useSpotifyAuth';
 import Dialog from '@/components/Dialog';
-
-function friendlySpotifyError(err) {
-  const code = err?.code ?? err?.params?.error;
-  if (code === 'access_denied') return 'Cancelaste la conexión con Spotify.';
-  if (err?.message?.toLowerCase().includes('network')) return 'Sin conexión a internet. Intenta de nuevo.';
-  return 'No se pudo conectar con Spotify. Intenta de nuevo.';
-}
 
 export default function EditProfileScreen() {
   const router = useRouter();
