@@ -188,11 +188,16 @@ export default function FriendsScreen() {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
-      const snap = await getDocs(collection(db, 'users'));
       const term = searchQuery.trim().toLowerCase();
+      const snap = await getDocs(query(
+        collection(db, 'users'),
+        where('displayNameLower', '>=', term),
+        where('displayNameLower', '<=', term + ''),
+        limit(20)
+      ));
       const results = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(u => u.id !== uid && u.displayName?.toLowerCase().includes(term));
+        .filter(u => u.id !== uid);
       setSearchResults(results);
     } catch {
       Alert.alert('Error buscando usuarios');

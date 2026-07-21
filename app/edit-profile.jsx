@@ -134,6 +134,7 @@ export default function EditProfileScreen() {
         updateProfile(user, { displayName: displayName.trim() }),
         updateDoc(doc(db, 'users', user.uid), {
           displayName: displayName.trim(),
+          displayNameLower: displayName.trim().toLowerCase(),
           avatar: avatar ?? null,
           bio: bio.trim(),
         }),

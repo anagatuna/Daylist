@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { registerPushToken, scheduleStreakReminder } from '@/lib/notifications';
 import { runStreakMigration } from '@/lib/migrateStreaks';
 import { migrateCommentCounts } from '@/lib/migrateCommentCounts';
+import { migrateDisplayNameLower } from '@/lib/migrateDisplayNameLower';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -64,6 +65,7 @@ function RootNav() {
     registerPushToken(user.uid).catch(() => {});
     runStreakMigration().catch(() => {});
     migrateCommentCounts().catch(() => {});
+    migrateDisplayNameLower().catch(() => {});
     scheduleStreakReminder().catch(() => {});
 
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {});

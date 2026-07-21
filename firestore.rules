@@ -10,13 +10,45 @@ service cloud.firestore {
       return request.auth.uid == uid;
     }
 
+    // El nuevo arreglo agrega exactamente un elemento (mi propio uid) respecto
+    // al viejo, sin quitar ni cambiar nada más.
+    function addedSelfOnly(oldArr, newArr) {
+      return newArr.size() == oldArr.size() + 1
+             && request.auth.uid in newArr
+             && !(request.auth.uid in oldArr)
+             && newArr.hasAll(oldArr);
+    }
+
+    // El nuevo arreglo quita exactamente un elemento (mi propio uid) respecto
+    // al viejo, sin agregar ni cambiar nada más.
+    function removedSelfOnly(oldArr, newArr) {
+      return oldArr.size() == newArr.size() + 1
+             && request.auth.uid in oldArr
+             && !(request.auth.uid in newArr)
+             && oldArr.hasAll(newArr);
+    }
+
     match /users/{uid} {
       allow read: if isAuth();
       allow create: if isOwner(uid);
-      // El dueño puede editar todo; cualquier usuario autenticado puede editar
-      // solo los campos friends/friendRequests (para solicitudes y amistades)
-      allow update: if isOwner(uid)
-                    || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends', 'friendRequests']));
+      // El dueño puede editar todo. Cualquier otro usuario autenticado solo
+      // puede agregar su propio uid a friendRequests (enviar solicitud), o
+      // agregar/quitar su propio uid en friends (aceptar/eliminar amistad) —
+      // nunca tocar las entradas de alguien más.
+      allow update: if isOwner(uid) || (
+        isAuth() && (
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendRequests'])
+            && addedSelfOnly(resource.data.get('friendRequests', []), request.resource.data.get('friendRequests', []))
+          ) || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends'])
+            && (
+              addedSelfOnly(resource.data.get('friends', []), request.resource.data.get('friends', []))
+              || removedSelfOnly(resource.data.get('friends', []), request.resource.data.get('friends', []))
+            )
+          )
+        )
+      );
     }
 
     // Tokens de Spotify sincronizados entre dispositivos, solo para esta cuenta

@@ -53,61 +53,67 @@ export default function HomeScreen() {
 
   async function loadData() {
     if (!user) return;
-    const [userDoc, streakResult] = await Promise.all([
-      getDoc(doc(db, 'users', user.uid)),
-      syncStreakToProfile(user.uid),
-    ]);
-    const userData = userDoc.data() ?? {};
-    const friends = userData.friends ?? [];
-    setStreak(streakResult.current);
-    setStreakFreezes(streakResult.streakFreezes);
-    if (streakResult.freezesUsed > 0) {
-      Alert.alert(
-        '¡Racha protegida! 🧊',
-        streakResult.freezesUsed === 1
-          ? 'Usamos un protector de racha para salvar tu racha del día que no publicaste.'
-          : `Usamos ${streakResult.freezesUsed} protectores de racha para salvar tu racha.`
-      );
-    }
+    try {
+      const [userDoc, streakResult] = await Promise.all([
+        getDoc(doc(db, 'users', user.uid)),
+        syncStreakToProfile(user.uid),
+      ]);
+      const userData = userDoc.data() ?? {};
+      const friends = userData.friends ?? [];
+      setStreak(streakResult.current);
+      setStreakFreezes(streakResult.streakFreezes);
+      if (streakResult.freezesUsed > 0) {
+        Alert.alert(
+          '¡Racha protegida! 🧊',
+          streakResult.freezesUsed === 1
+            ? 'Usamos un protector de racha para salvar tu racha del día que no publicaste.'
+            : `Usamos ${streakResult.freezesUsed} protectores de racha para salvar tu racha.`
+        );
+      }
 
-    const myQ = query(
-      collection(db, 'posts'),
-      where('uid', '==', user.uid),
-      where('date', '==', today)
-    );
-    const mySnap = await getDocs(myQ);
-    setMyPost(mySnap.empty ? null : { id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
-
-    if (friends.length > 0) {
-      // Firestore's 'in' operator only supports up to 10 values, so friends
-      // are queried in chunks of 10 and merged/re-sorted client-side.
-      const friendChunks = [];
-      for (let i = 0; i < friends.length; i += 10) friendChunks.push(friends.slice(i, i + 10));
-
-      const fSnaps = await Promise.all(friendChunks.map(chunk => getDocs(query(
+      const myQ = query(
         collection(db, 'posts'),
-        where('uid', 'in', chunk),
-        where('date', '==', today),
-        orderBy('createdAt', 'desc')
-      ))));
-      const posts = fSnaps
-        .flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
-        .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+        where('uid', '==', user.uid),
+        where('date', '==', today)
+      );
+      const mySnap = await getDocs(myQ);
+      setMyPost(mySnap.empty ? null : { id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
 
-      // Enriquecer con avatar si el post no lo tiene guardado
-      const enriched = await Promise.all(posts.map(async p => {
-        if (p.avatar) return p;
-        const uSnap = await getDoc(doc(db, 'users', p.uid));
-        return { ...p, avatar: uSnap.data()?.avatar ?? null };
-      }));
-      setFriendPosts(enriched);
-    } else {
-      setFriendPosts([]);
+      if (friends.length > 0) {
+        // Firestore's 'in' operator only supports up to 10 values, so friends
+        // are queried in chunks of 10 and merged/re-sorted client-side.
+        const friendChunks = [];
+        for (let i = 0; i < friends.length; i += 10) friendChunks.push(friends.slice(i, i + 10));
+
+        const fSnaps = await Promise.all(friendChunks.map(chunk => getDocs(query(
+          collection(db, 'posts'),
+          where('uid', 'in', chunk),
+          where('date', '==', today),
+          orderBy('createdAt', 'desc')
+        ))));
+        const posts = fSnaps
+          .flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
+          .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+
+        // Enriquecer con avatar si el post no lo tiene guardado
+        const enriched = await Promise.all(posts.map(async p => {
+          if (p.avatar) return p;
+          const uSnap = await getDoc(doc(db, 'users', p.uid));
+          return { ...p, avatar: uSnap.data()?.avatar ?? null };
+        }));
+        setFriendPosts(enriched);
+      } else {
+        setFriendPosts([]);
+      }
+    } catch (e) {
+      Alert.alert('Error cargando tu feed', e.message);
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (user) loadData().finally(() => setLoading(false));
+    if (user) loadData();
   }, [user]);
 
   // Recargar al volver a la pantalla para tener reacciones y avatares actualizados
