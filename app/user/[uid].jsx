@@ -292,7 +292,7 @@ export default function UserProfileScreen() {
       />
 
       {Platform.OS === 'android' && showPicker && (
-        <DateTimePicker value={pickerDate} mode="date" maximumDate={new Date()} onChange={onChangeDate} />
+        <DateTimePicker value={pickerDate} mode="date" onChange={onChangeDate} />
       )}
       {Platform.OS === 'ios' && (
         <Modal visible={showPicker} transparent animationType="fade">
@@ -305,7 +305,6 @@ export default function UserProfileScreen() {
                 value={pickerDate}
                 mode="date"
                 display="spinner"
-                maximumDate={new Date()}
                 onChange={onChangeDate}
                 textColor={colors.textPrimary}
               />
