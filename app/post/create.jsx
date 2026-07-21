@@ -16,7 +16,7 @@ import { fetchTopArtists } from '@/lib/spotifyAuth';
 import { useSpotifyAuth, friendlySpotifyError } from '@/hooks/useSpotifyAuth';
 import { notifyFriends, cancelStreakReminder } from '@/lib/notifications';
 import { localDateStr } from '@/lib/date';
-import { getLyrics, isSectionMarker } from '@/lib/musixmatch';
+import { getLyrics, isSectionMarker, normalizeLyricLine } from '@/lib/musixmatch';
 import { BlurView } from 'expo-blur';
 import AudioPlayer from '@/components/AudioPlayer';
 import SheetModal from '@/components/SheetModal';
@@ -158,12 +158,14 @@ export default function CreatePostScreen() {
   function toggleLyricLine(line) {
     const current = songs[lyricModal]?.lyricSnippet ?? [];
     const arr = Array.isArray(current) ? current : current ? [current] : [];
-    const exists = arr.includes(line);
+    const exists = arr.some(l => normalizeLyricLine(l) === normalizeLyricLine(line));
     setSongs(p => ({
       ...p,
       [lyricModal]: {
         ...p[lyricModal],
-        lyricSnippet: exists ? arr.filter(l => l !== line) : [...arr, line],
+        lyricSnippet: exists
+          ? arr.filter(l => normalizeLyricLine(l) !== normalizeLyricLine(line))
+          : [...arr, line],
       },
     }));
   }
@@ -648,7 +650,7 @@ function LyricLineItem({ item, selected, maxReached, onToggle }) {
     );
   }
 
-  const isSelected = selected.includes(item);
+  const isSelected = selected.some(s => normalizeLyricLine(s) === normalizeLyricLine(item));
   const disabled = maxReached && !isSelected;
   return (
     <TouchableOpacity

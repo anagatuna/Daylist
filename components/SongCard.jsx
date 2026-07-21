@@ -12,7 +12,7 @@ import AudioPlayer from './AudioPlayer';
 import SheetModal from './SheetModal';
 import Reactions from './Reactions';
 import CommentsSheet from './CommentsSheet';
-import { getLyrics, isSectionMarker } from '@/lib/musixmatch';
+import { getLyrics, isSectionMarker, normalizeLyricLine } from '@/lib/musixmatch';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -184,7 +184,7 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
                         </Text>
                       );
                     }
-                    const isHighlighted = snippetArr.some(s => s.trim() === line.trim());
+                    const isHighlighted = snippetArr.some(s => normalizeLyricLine(s) === normalizeLyricLine(line));
                     return (
                       <Text key={j} style={[styles.lyricLine, { color: colors.textMuted }, isHighlighted && { color: colors.primary, fontWeight: '700' }]}>
                         {line}
