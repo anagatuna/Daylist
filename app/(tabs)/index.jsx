@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Platform, ScrollView, StatusBar, StyleSheet, Text, View,
-  TouchableOpacity, ActivityIndicator, RefreshControl, Image,
+  TouchableOpacity, ActivityIndicator, RefreshControl, Image, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, where, orderBy, getDocs, doc, getDoc, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { localDateStr } from '@/lib/date';
+import { syncStreakToProfile } from '@/lib/streak';
 import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
@@ -47,17 +48,27 @@ export default function HomeScreen() {
   const [friendPosts, setFriendPosts] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [commentCounts, setCommentCounts] = useState({});
   const [streak, setStreak] = useState(0);
   const [streakFreezes, setStreakFreezes] = useState(0);
 
   async function loadData() {
     if (!user) return;
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const [userDoc, streakResult] = await Promise.all([
+      getDoc(doc(db, 'users', user.uid)),
+      syncStreakToProfile(user.uid),
+    ]);
     const userData = userDoc.data() ?? {};
     const friends = userData.friends ?? [];
-    setStreak(userData.streak ?? 0);
-    setStreakFreezes(userData.streakFreezes ?? 0);
+    setStreak(streakResult.current);
+    setStreakFreezes(streakResult.streakFreezes);
+    if (streakResult.freezesUsed > 0) {
+      Alert.alert(
+        '¡Racha protegida! 🧊',
+        streakResult.freezesUsed === 1
+          ? 'Usamos un protector de racha para salvar tu racha del día que no publicaste.'
+          : `Usamos ${streakResult.freezesUsed} protectores de racha para salvar tu racha.`
+      );
+    }
 
     const myQ = query(
       collection(db, 'posts'),
@@ -90,22 +101,6 @@ export default function HomeScreen() {
         return { ...p, avatar: uSnap.data()?.avatar ?? null };
       }));
       setFriendPosts(enriched);
-
-      // Cargar conteo de comentarios por slot
-      const counts = {};
-      const allPosts = [...enriched];
-      if (mySnap.docs.length > 0) allPosts.push({ id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
-      const slots = ['morning', 'afternoon', 'night'];
-      await Promise.all(allPosts.flatMap(p =>
-        slots.map(async s => {
-          try {
-            const q2 = query(collection(db, 'posts', p.id, 'comments'), where('slot', '==', s));
-            const snap = await getCountFromServer(q2);
-            counts[`${p.id}_${s}`] = snap.data().count;
-          } catch { counts[`${p.id}_${s}`] = 0; }
-        })
-      ));
-      setCommentCounts(counts);
     } else {
       setFriendPosts([]);
     }
@@ -200,7 +195,7 @@ export default function HomeScreen() {
                   postId={myPost.id}
                   postOwnerUid={user.uid}
                   reactions={myPost.reactions?.[key] ?? {}}
-                  commentCount={commentCounts[`${myPost.id}_${key}`] ?? 0}
+                  commentCount={myPost.commentCounts?.[key] ?? 0}
                 />
               ) : null
             )
@@ -246,7 +241,7 @@ export default function HomeScreen() {
                       postId={post.id}
                       postOwnerUid={post.uid}
                       reactions={post.reactions?.[key] ?? {}}
-                      commentCount={commentCounts[`${post.id}_${key}`] ?? 0}
+                      commentCount={post.commentCounts?.[key] ?? 0}
                     />
                   ) : null
                 )}

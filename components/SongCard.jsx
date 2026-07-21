@@ -12,7 +12,7 @@ import AudioPlayer from './AudioPlayer';
 import SheetModal from './SheetModal';
 import Reactions from './Reactions';
 import CommentsSheet from './CommentsSheet';
-import { getLyrics } from '@/lib/musixmatch';
+import { getLyrics, isSectionMarker } from '@/lib/musixmatch';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -177,6 +177,13 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
               stanzas.map((stanza, i) => (
                 <View key={i} style={styles.stanza}>
                   {stanza.split('\n').map((line, j) => {
+                    if (isSectionMarker(line)) {
+                      return (
+                        <Text key={j} style={[styles.lyricLineMarker, { color: colors.textMuted }]}>
+                          {line}
+                        </Text>
+                      );
+                    }
                     const isHighlighted = snippetArr.some(s => s.trim() === line.trim());
                     return (
                       <Text key={j} style={[styles.lyricLine, { color: colors.textMuted }, isHighlighted && { color: colors.primary, fontWeight: '700' }]}>
@@ -298,6 +305,7 @@ const styles = StyleSheet.create({
   lyricsBody: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 60 },
   stanza: { marginBottom: 24 },
   lyricLine: { color: Colors.textSecondary, fontSize: 17, lineHeight: 30 },
+  lyricLineMarker: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', lineHeight: 26 },
   lyricLineHL: {
     color: Colors.primary,
     fontWeight: '700',

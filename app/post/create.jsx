@@ -16,7 +16,7 @@ import { fetchTopArtists } from '@/lib/spotifyAuth';
 import { useSpotifyAuth, friendlySpotifyError } from '@/hooks/useSpotifyAuth';
 import { notifyFriends, cancelStreakReminder } from '@/lib/notifications';
 import { localDateStr } from '@/lib/date';
-import { getLyrics } from '@/lib/musixmatch';
+import { getLyrics, isSectionMarker } from '@/lib/musixmatch';
 import { BlurView } from 'expo-blur';
 import AudioPlayer from '@/components/AudioPlayer';
 import SheetModal from '@/components/SheetModal';
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
   addBtnText: { fontSize: 15, fontWeight: '600' },
 
   selectedCard: { borderRadius: Radius.lg, padding: 14, borderWidth: 1, overflow: 'hidden' },
-  selectedRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  selectedRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   selectedCover: { width: 60, height: 60, borderRadius: Radius.sm },
   selectedName: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
   selectedArtist: { color: Colors.primary, fontSize: 12, marginTop: 2 },
@@ -630,6 +630,8 @@ modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
   lyricLineTextSelected: { color: Colors.textPrimary, fontWeight: '600' },
   lyricLineDisabled: { opacity: 0.3 },
   lyricLineTextDisabled: { color: Colors.textMuted },
+  lyricLineMarker: { paddingVertical: 10, paddingHorizontal: 16 },
+  lyricLineMarkerText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
   currentSnippetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   noLyricsEmpty: { alignItems: 'center', marginTop: 50, gap: 10 },
   noLyricsText: { color: Colors.textMuted, fontSize: 14, textAlign: 'center' },
@@ -637,6 +639,15 @@ modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
 
 function LyricLineItem({ item, selected, maxReached, onToggle }) {
   const { colors } = useTheme();
+
+  if (isSectionMarker(item)) {
+    return (
+      <View style={styles.lyricLineMarker}>
+        <Text style={[styles.lyricLineMarkerText, { color: colors.textMuted }]}>{item}</Text>
+      </View>
+    );
+  }
+
   const isSelected = selected.includes(item);
   const disabled = maxReached && !isSelected;
   return (

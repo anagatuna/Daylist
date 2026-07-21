@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { splitArtists } from '@/lib/musixmatch';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -12,10 +13,8 @@ function computeTopArtists(posts) {
     SLOTS.forEach(slot => {
       const raw = p.songs?.[slot]?.artist;
       if (!raw) return;
-      const names = raw.split(/\s*[&,]\s*|\s+(?:feat\.?|ft\.?|x)\s+/i);
-      names.forEach(name => {
-        const n = name.trim();
-        if (n) artistCount[n] = (artistCount[n] ?? 0) + 1;
+      splitArtists(raw).forEach(n => {
+        artistCount[n] = (artistCount[n] ?? 0) + 1;
       });
     });
   });
