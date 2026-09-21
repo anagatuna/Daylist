@@ -15,7 +15,7 @@ import { searchSpotifyTracks, serializeSpotifyTrack } from '@/lib/spotify';
 import { fetchTopArtists } from '@/lib/spotifyAuth';
 import { useSpotifyAuth, friendlySpotifyError } from '@/hooks/useSpotifyAuth';
 import { notifyFriends, cancelStreakReminder } from '@/lib/notifications';
-import { localDateStr } from '@/lib/date';
+import { localDateStr, isSlotOpen, slotStartLabel } from '@/lib/date';
 import { getLyrics, isSectionMarker, normalizeLyricLine } from '@/lib/musixmatch';
 import { BlurView } from 'expo-blur';
 import AudioPlayer from '@/components/AudioPlayer';
@@ -55,6 +55,16 @@ export default function CreatePostScreen() {
   const [streakCount, setStreakCount] = useState(0);
   const [freezeAwarded, setFreezeAwarded] = useState(false);
   const [freezesUsed, setFreezesUsed] = useState(0);
+  const [now, setNow] = useState(() => new Date());
+  // Slots que ya estaban guardados hoy (para no bloquear posts hechos antes de los horarios)
+  const savedSlots = useRef(new Set());
+
+  // Re-evaluar cada 30s qué horarios están abiertos (por si la pantalla queda abierta al cambiar de hora)
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   // Cargar post de hoy si ya existe
   useEffect(() => {
     async function loadToday() {
@@ -75,6 +85,7 @@ export default function CreatePostScreen() {
           night: data.songs?.night ?? null,
         };
         setSongs(loaded);
+        savedSlots.current = new Set(Object.keys(loaded).filter(k => loaded[k]));
         if (loaded.morning && loaded.afternoon && loaded.night) {
           setAlreadyPosted(true);
         }
@@ -181,6 +192,15 @@ export default function CreatePostScreen() {
 
     const filled = SLOTS.filter((sl) => songs[sl.key]);
     if (filled.length === 0) return Alert.alert('Agrega al menos una canción');
+
+    // No permitir publicar canciones de un horario que todavía no empieza
+    const early = filled.find((sl) => !isSlotOpen(sl.key) && !savedSlots.current.has(sl.key));
+    if (early) {
+      return Alert.alert(
+        'Todavía no',
+        `La canción de la ${early.label.toLowerCase()} se puede agregar a partir de las ${slotStartLabel(early.key)}.`
+      );
+    }
 
     const user = auth.currentUser;
     if (!user) return;
@@ -423,6 +443,15 @@ export default function CreatePostScreen() {
                   ) : null}
                 </View>
               </View>
+            ) : !isSlotOpen(key, now) ? (
+              <View style={[styles.addBtn, styles.lockedBtn, { borderColor: colors.border }]}>
+                <View style={[styles.addIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                  <Ionicons name="lock-closed" size={16} color={colors.textMuted} />
+                </View>
+                <Text style={[styles.lockedText, { color: colors.textMuted }]}>
+                  Disponible a partir de las {slotStartLabel(key)}
+                </Text>
+              </View>
             ) : (
               <View style={[styles.cardShadow, { backgroundColor: colors.bg, shadowColor: colors.primary, shadowOpacity: 0.10 }]}>
                 <TouchableOpacity style={[styles.addBtn, { borderColor: colors.cardGlass.border }]} onPress={() => setActiveSlot(key)}>
@@ -577,6 +606,8 @@ const styles = StyleSheet.create({
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: Radius.lg, padding: 16, borderWidth: 1, overflow: 'hidden' },
   addIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   addBtnText: { fontSize: 15, fontWeight: '600' },
+  lockedBtn: { borderStyle: 'dashed', opacity: 0.7 },
+  lockedText: { fontSize: 14, fontWeight: '500', flex: 1 },
 
   selectedCard: { borderRadius: Radius.lg, padding: 14, borderWidth: 1, overflow: 'hidden' },
   selectedRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },

@@ -1,10 +1,13 @@
+import { useEffect, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import {
   Image, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { isSlotOpen, slotStartLabel } from '@/lib/date';
 
 const ACCENT = {
   morning:   { bar: ['#E8B86D', '#D4956A'], dot: '#E8B86D' },
@@ -74,6 +77,39 @@ function FilledBlock({ slot, onPlay }) {
 function EmptyBlock({ slot, onAdd }) {
   const { colors } = useTheme();
   const accent = ACCENT[slot.timeOfDay] ?? ACCENT.morning;
+  const [open, setOpen] = useState(() => isSlotOpen(slot.timeOfDay));
+
+  // Re-evaluar cada 30s para desbloquear el horario cuando empiece
+  useEffect(() => {
+    const update = () => setOpen(isSlotOpen(slot.timeOfDay));
+    update();
+    const id = setInterval(update, 30000);
+    return () => clearInterval(id);
+  }, [slot.timeOfDay]);
+
+  if (!open) {
+    return (
+      <View style={[styles.emptyContainer, styles.lockedContainer, { borderColor: colors.cardGlass.border }]}>
+        <BlurView tint={colors.cardGlass.tint} intensity={colors.cardGlass.intensity} experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFill, styles.blockBg]} />
+        <View style={[StyleSheet.absoluteFill, styles.blockBg, { backgroundColor: colors.cardGlass.overlay }]} />
+        <LinearGradient
+          colors={[accent.bar[0] + '30', accent.bar[1] + '08']}
+          style={styles.accentBar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+
+        <View style={styles.emptyLeft}>
+          <Text style={[styles.emptyLabel, { color: colors.textMuted }]}>{SLOT_LABEL[slot.timeOfDay]?.toUpperCase()}</Text>
+          <Text style={[styles.emptyPrompt, { color: colors.textMuted }]}>Disponible a partir de las {slotStartLabel(slot.timeOfDay)}</Text>
+        </View>
+
+        <View style={[styles.addButton, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+          <Ionicons name="lock-closed" size={14} color={colors.textMuted} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.shadowWrapSm, { backgroundColor: colors.bg, shadowColor: colors.primary, shadowOpacity: colors.cardGlass.shadowOpacitySm }]}>
@@ -228,6 +264,7 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     overflow: 'hidden',
   },
+  lockedContainer: { opacity: 0.6 },
   emptyLeft: { flex: 1, gap: 4 },
   emptyLabel: {
     fontSize: 10,
