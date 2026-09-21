@@ -85,7 +85,7 @@ export default function RegisterScreen() {
       const { user } = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
       await updateProfile(user, { displayName: trimmedName });
       await setDoc(doc(db, 'users', user.uid), {
-        displayName: trimmedName, email: trimmedEmail,
+        displayName: trimmedName, displayNameLower: trimmedName.toLowerCase(), email: trimmedEmail,
         avatar: null, bio: '', createdAt: serverTimestamp(),
         friends: [], friendRequests: [],
       });

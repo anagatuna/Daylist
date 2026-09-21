@@ -7,14 +7,16 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { searchTracks, serializeTrack } from '@/lib/itunes';
+import { searchSpotifyTracks, serializeSpotifyTrack } from '@/lib/spotify';
+import { fetchTopArtists } from '@/lib/spotifyAuth';
+import { useSpotifyAuth, friendlySpotifyError } from '@/hooks/useSpotifyAuth';
 import { notifyFriends, cancelStreakReminder } from '@/lib/notifications';
 import { localDateStr } from '@/lib/date';
-import { getLyrics } from '@/lib/musixmatch';
+import { getLyrics, isSectionMarker, normalizeLyricLine } from '@/lib/musixmatch';
 import { BlurView } from 'expo-blur';
 import AudioPlayer from '@/components/AudioPlayer';
 import SheetModal from '@/components/SheetModal';
@@ -34,12 +36,14 @@ export default function CreatePostScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const spotify = useSpotifyAuth();
   const { scrollProps: lyricScrollProps, indicator: lyricIndicator } = useScrollBar();
   const [songs, setSongs] = useState({ morning: null, afternoon: null, night: null });
   const [activeSlot, setActiveSlot] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [topArtistIds, setTopArtistIds] = useState([]);
   const [phraseModal, setPhraseModal] = useState(null);
   const [phrase, setPhrase] = useState('');
   const [lyricModal, setLyricModal] = useState(null); // slot key
@@ -79,13 +83,28 @@ export default function CreatePostScreen() {
     loadToday();
   }, []);
 
+  useEffect(() => {
+    if (spotify.error) Alert.alert('Error de Spotify', friendlySpotifyError(spotify.error));
+  }, [spotify.error]);
+
+  // Artistas más escuchados, para priorizarlos en la búsqueda cuando el nombre es genérico
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid || !spotify.connected) return;
+    fetchTopArtists(uid, 'medium_term', 20)
+      .then(items => setTopArtistIds(items.map(a => a.id)))
+      .catch(() => {});
+  }, [spotify.connected]);
+
   // Búsqueda automática con debounce al escribir
   useEffect(() => {
     if (!searchQuery.trim()) { setResults([]); return; }
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
-        const tracks = await searchTracks(searchQuery);
+        const tracks = await searchSpotifyTracks(uid, searchQuery, topArtistIds);
         setResults(tracks);
       } catch {
         // silencioso
@@ -94,10 +113,10 @@ export default function CreatePostScreen() {
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, topArtistIds]);
 
   function selectTrack(track) {
-    const serialized = serializeTrack(track);
+    const serialized = serializeSpotifyTrack(track);
     setSongs((prev) => ({
       ...prev,
       [activeSlot]: { ...serialized, phrase: '', lyricSnippet: null },
@@ -139,12 +158,14 @@ export default function CreatePostScreen() {
   function toggleLyricLine(line) {
     const current = songs[lyricModal]?.lyricSnippet ?? [];
     const arr = Array.isArray(current) ? current : current ? [current] : [];
-    const exists = arr.includes(line);
+    const exists = arr.some(l => normalizeLyricLine(l) === normalizeLyricLine(line));
     setSongs(p => ({
       ...p,
       [lyricModal]: {
         ...p[lyricModal],
-        lyricSnippet: exists ? arr.filter(l => l !== line) : [...arr, line],
+        lyricSnippet: exists
+          ? arr.filter(l => normalizeLyricLine(l) !== normalizeLyricLine(line))
+          : [...arr, line],
       },
     }));
   }
@@ -156,6 +177,8 @@ export default function CreatePostScreen() {
   }
 
   async function publish() {
+    if (saving) return;
+
     const filled = SLOTS.filter((sl) => songs[sl.key]);
     if (filled.length === 0) return Alert.alert('Agrega al menos una canción');
 
@@ -163,17 +186,17 @@ export default function CreatePostScreen() {
     if (!user) return;
     const today = localDateStr();
 
-    // Check if user already posted today
-    const q = query(
-      collection(db, 'posts'),
-      where('uid', '==', user.uid),
-      where('date', '==', today)
-    );
-    const snap = await getDocs(q);
-    const existingDoc = snap.empty ? null : snap.docs[0];
-
     setSaving(true);
     try {
+      // Check if user already posted today
+      const q = query(
+        collection(db, 'posts'),
+        where('uid', '==', user.uid),
+        where('date', '==', today)
+      );
+      const snap = await getDocs(q);
+      const existingDoc = snap.empty ? null : snap.docs[0];
+
       const songData = {};
       SLOTS.forEach(({ key }) => {
         if (songs[key]) songData[key] = songs[key];
@@ -235,6 +258,43 @@ export default function CreatePostScreen() {
     }
   }
 
+  if (spotify.checking) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: colors.bg }]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!spotify.connected) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: colors.bg }]}>
+        <View style={styles.connectGate}>
+          <MaterialCommunityIcons name="spotify" size={48} color={colors.spotify} />
+          <Text style={[styles.connectTitle, { color: colors.textPrimary }]}>Conecta tu Spotify</Text>
+          <Text style={[styles.connectSubtitle, { color: colors.textMuted }]}>
+            Necesitamos tu cuenta de Spotify para buscar canciones y armar tu Daylist.
+          </Text>
+          <TouchableOpacity
+            onPress={spotify.connect}
+            disabled={spotify.connecting}
+            activeOpacity={0.85}
+            style={[styles.spotifyConnectBtn, { borderColor: colors.spotify }]}
+          >
+            {spotify.connecting ? (
+              <ActivityIndicator color={colors.spotify} />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="spotify" size={18} color={colors.spotify} />
+                <Text style={[styles.spotifyConnectText, { color: colors.spotify }]}>Conectar con Spotify</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   if (activeSlot) {
     return (
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -274,24 +334,20 @@ export default function CreatePostScreen() {
 
         <FlatList
           data={results}
-          keyExtractor={(t) => String(t.trackId)}
+          keyExtractor={(t) => t.id}
           contentContainerStyle={{ padding: 16, gap: 10 }}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <View style={[styles.resultShadow, { backgroundColor: colors.bg, shadowColor: colors.primary }]}>
               <TouchableOpacity style={[styles.resultItem, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => selectTrack(item)}>
-                {item.artworkUrl100
-                  ? <Image source={{ uri: item.artworkUrl100 }} style={styles.resultCover} />
+                {item.artworkUrl
+                  ? <Image source={{ uri: item.artworkUrl }} style={styles.resultCover} />
                   : <View style={[styles.resultCover, { backgroundColor: colors.border }]} />
                 }
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.resultName, { color: colors.textPrimary }]} numberOfLines={1}>{item.trackName}</Text>
-                  <Text style={[styles.resultArtist, { color: colors.primary }]} numberOfLines={1}>{item.artistName}</Text>
-                  <Text style={[styles.resultAlbum, { color: colors.textMuted }]} numberOfLines={1}>{item.collectionName}</Text>
-                  {item.previewUrl
-                    ? <Text style={[styles.previewBadge, { color: colors.primary }]}>▶ Preview disponible</Text>
-                    : <Text style={[styles.noPreviewBadge, { color: colors.textMuted }]}>Sin preview</Text>
-                  }
+                  <Text style={[styles.resultName, { color: colors.textPrimary }]} numberOfLines={1}>{item.name}</Text>
+                  <Text style={[styles.resultArtist, { color: colors.primary }]} numberOfLines={1}>{item.artist}</Text>
+                  <Text style={[styles.resultAlbum, { color: colors.textMuted }]} numberOfLines={1}>{item.album}</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -501,6 +557,15 @@ export default function CreatePostScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
+  centerContent: { alignItems: 'center', justifyContent: 'center' },
+  connectGate: { alignItems: 'center', paddingHorizontal: 32, gap: 8 },
+  connectTitle: { fontSize: 20, fontWeight: '700', marginTop: 8 },
+  connectSubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 8 },
+  spotifyConnectBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1.5, borderRadius: Radius.pill, paddingVertical: 14, paddingHorizontal: 24, marginTop: 8,
+  },
+  spotifyConnectText: { fontSize: 15, fontWeight: '700' },
   editBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: Radius.md, padding: 10, marginBottom: 16, borderWidth: 1 },
   editBannerText: { fontSize: 13, fontWeight: '600' },
   scroll: { padding: 20, paddingBottom: 120 },
@@ -514,7 +579,7 @@ const styles = StyleSheet.create({
   addBtnText: { fontSize: 15, fontWeight: '600' },
 
   selectedCard: { borderRadius: Radius.lg, padding: 14, borderWidth: 1, overflow: 'hidden' },
-  selectedRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  selectedRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   selectedCover: { width: 60, height: 60, borderRadius: Radius.sm },
   selectedName: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
   selectedArtist: { color: Colors.primary, fontSize: 12, marginTop: 2 },
@@ -549,8 +614,6 @@ modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
   charCount: { color: Colors.textMuted, fontSize: 12, textAlign: 'right', marginTop: 4 },
   saveBtn: { borderRadius: Radius.pill, padding: 17, alignItems: 'center', marginTop: 24 },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  previewBadge: { color: Colors.primary, fontSize: 11, marginTop: 3, fontWeight: '600' },
-  noPreviewBadge: { color: Colors.textMuted, fontSize: 11, marginTop: 3 },
   lyricSnippetPreview: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 8, backgroundColor: 'rgba(192,132,252,0.08)', borderRadius: Radius.sm, padding: 8, borderLeftWidth: 2, borderLeftColor: Colors.primary },
   lyricSnippetText: { color: Colors.textSecondary, fontSize: 12, fontStyle: 'italic', flex: 1, lineHeight: 18 },
   snippetBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 20, marginBottom: 14, gap: 10 },
@@ -569,6 +632,8 @@ modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
   lyricLineTextSelected: { color: Colors.textPrimary, fontWeight: '600' },
   lyricLineDisabled: { opacity: 0.3 },
   lyricLineTextDisabled: { color: Colors.textMuted },
+  lyricLineMarker: { paddingVertical: 10, paddingHorizontal: 16 },
+  lyricLineMarkerText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
   currentSnippetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   noLyricsEmpty: { alignItems: 'center', marginTop: 50, gap: 10 },
   noLyricsText: { color: Colors.textMuted, fontSize: 14, textAlign: 'center' },
@@ -576,7 +641,16 @@ modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: '700' },
 
 function LyricLineItem({ item, selected, maxReached, onToggle }) {
   const { colors } = useTheme();
-  const isSelected = selected.includes(item);
+
+  if (isSectionMarker(item)) {
+    return (
+      <View style={styles.lyricLineMarker}>
+        <Text style={[styles.lyricLineMarkerText, { color: colors.textMuted }]}>{item}</Text>
+      </View>
+    );
+  }
+
+  const isSelected = selected.some(s => normalizeLyricLine(s) === normalizeLyricLine(item));
   const disabled = maxReached && !isSelected;
   return (
     <TouchableOpacity

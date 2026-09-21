@@ -1,10 +1,51 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Radius } from '@/constants/Theme';
 import { useTheme } from '@/contexts/ThemeContext';
+
+// Rachas que terminan en 67 (67, 167, 267…) → animación "six seven".
+export function isSixSeven(streak) {
+  return streak > 0 && streak % 100 === 67;
+}
+
+function SixSevenHands({ scale }) {
+  const bob = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const ease = Easing.inOut(Easing.sin);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bob, { toValue: 1, duration: 230, easing: ease, useNativeDriver: true }),
+        Animated.timing(bob, { toValue: -1, duration: 230, easing: ease, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  // Palmas hacia arriba que suben y bajan alternadas, como pesando algo;
+  // la que sube se inclina un poco hacia dentro.
+  const leftY = bob.interpolate({ inputRange: [-1, 1], outputRange: [-26, 26] });
+  const rightY = bob.interpolate({ inputRange: [-1, 1], outputRange: [26, -26] });
+  const leftTilt = bob.interpolate({ inputRange: [-1, 1], outputRange: ['8deg', '-4deg'] });
+  const rightTilt = bob.interpolate({ inputRange: [-1, 1], outputRange: ['4deg', '-8deg'] });
+
+  return (
+    <Animated.View style={[s.sixSevenRow, { transform: [{ scale }] }]}>
+      <Animated.View style={[s.handCol, { transform: [{ translateY: leftY }, { rotate: leftTilt }] }]}>
+        <Text style={s.sixSevenDigit}>6</Text>
+        <MaterialCommunityIcons name="hand-extended" size={76} color="#fff" style={[s.hand, { transform: [{ scaleX: -1 }] }]} />
+      </Animated.View>
+      <Animated.View style={[s.handCol, { transform: [{ translateY: rightY }, { rotate: rightTilt }] }]}>
+        <Text style={s.sixSevenDigit}>7</Text>
+        <MaterialCommunityIcons name="hand-extended" size={76} color="#fff" style={s.hand} />
+      </Animated.View>
+    </Animated.View>
+  );
+}
 
 export default function StreakCelebration({ visible, streak, freezeAwarded, freezesUsed, onClose }) {
   const { colors } = useTheme();
@@ -46,7 +87,10 @@ export default function StreakCelebration({ visible, streak, freezeAwarded, free
 
   if (!visible) return null;
 
+  const sixSeven = isSixSeven(streak);
+
   const getMessage = () => {
+    if (sixSeven) return '¡SIX SEVEN! 🤷';
     if (streak >= 30) return '¡Leyenda musical!';
     if (streak >= 14) return '¡Imparable!';
     if (streak >= 7) return '¡Una semana seguida!';
@@ -58,9 +102,13 @@ export default function StreakCelebration({ visible, streak, freezeAwarded, free
   return (
     <Animated.View style={[s.screen, { backgroundColor: colors.bg, opacity }]}>
       <View style={[s.content, { paddingTop: insets.top + 60 }]}>
-        <Animated.Text style={[s.fireEmoji, { transform: [{ scale: Animated.multiply(fireScale, pulseAnim) }] }]}>
-          🔥
-        </Animated.Text>
+        {sixSeven ? (
+          <SixSevenHands scale={fireScale} />
+        ) : (
+          <Animated.Text style={[s.fireEmoji, { transform: [{ scale: Animated.multiply(fireScale, pulseAnim) }] }]}>
+            🔥
+          </Animated.Text>
+        )}
 
         <Animated.View style={{ alignItems: 'center', opacity: numOpacity, transform: [{ translateY: numSlide }] }}>
           <Text style={[s.streakNum, { color: colors.textPrimary }]}>{streak}</Text>
@@ -135,6 +183,11 @@ const s = StyleSheet.create({
     gap: 16,
   },
   fireEmoji: { fontSize: 80, marginBottom: 4 },
+  sixSevenRow: { flexDirection: 'row', gap: 36, marginBottom: 4, paddingVertical: 26 },
+  handCol: { alignItems: 'center' },
+  // Sombra para que la mano blanca se vea también en tema claro.
+  hand: { textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 8, textShadowOffset: { width: 0, height: 2 } },
+  sixSevenDigit: { fontSize: 34, fontWeight: '900', color: '#FF9500', marginBottom: -6 },
   streakNum: { fontSize: 72, fontWeight: '900', letterSpacing: -3 },
   streakLabel: { fontSize: 18, fontWeight: '600', marginTop: -6 },
   message: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: 8 },

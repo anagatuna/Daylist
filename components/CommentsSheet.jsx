@@ -8,7 +8,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   collection, addDoc, query, where, orderBy, onSnapshot,
-  serverTimestamp, doc, deleteDoc, getDoc,
+  serverTimestamp, doc, deleteDoc, getDoc, updateDoc, increment,
 } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '@/lib/firebase';
@@ -82,6 +82,7 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
         replyToName: replyTo?.displayName ?? null,
         createdAt: serverTimestamp(),
       });
+      await updateDoc(doc(db, 'posts', postId), { [`commentCounts.${slot}`]: increment(1) });
       if (!replyTo && postOwnerUid && postOwnerUid !== user.uid)
         notifyComment(postOwnerUid, user.displayName ?? 'Usuario', trimmed).catch(() => {});
       if (replyTo?.uid && replyTo.uid !== user.uid)
@@ -95,6 +96,7 @@ export default function CommentsSheet({ visible, onClose, postId, postOwnerUid, 
 
   async function deleteComment(commentId) {
     await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
+    await updateDoc(doc(db, 'posts', postId), { [`commentCounts.${slot}`]: increment(-1) });
   }
 
   const topLevel = comments.filter(c => !c.replyTo);

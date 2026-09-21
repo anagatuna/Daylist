@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Platform, ScrollView, StatusBar, StyleSheet, Text, View,
-  TouchableOpacity, ActivityIndicator, RefreshControl, Image,
+  TouchableOpacity, ActivityIndicator, RefreshControl, Image, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, where, orderBy, getDocs, doc, getDoc, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { localDateStr } from '@/lib/date';
+import { syncStreakToProfile } from '@/lib/streak';
 import { useAuth } from '@/hooks/useAuth';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
@@ -47,72 +48,72 @@ export default function HomeScreen() {
   const [friendPosts, setFriendPosts] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [commentCounts, setCommentCounts] = useState({});
   const [streak, setStreak] = useState(0);
   const [streakFreezes, setStreakFreezes] = useState(0);
 
   async function loadData() {
     if (!user) return;
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    const userData = userDoc.data() ?? {};
-    const friends = userData.friends ?? [];
-    setStreak(userData.streak ?? 0);
-    setStreakFreezes(userData.streakFreezes ?? 0);
+    try {
+      const [userDoc, streakResult] = await Promise.all([
+        getDoc(doc(db, 'users', user.uid)),
+        syncStreakToProfile(user.uid),
+      ]);
+      const userData = userDoc.data() ?? {};
+      const friends = userData.friends ?? [];
+      setStreak(streakResult.current);
+      setStreakFreezes(streakResult.streakFreezes);
+      if (streakResult.freezesUsed > 0) {
+        Alert.alert(
+          '¡Racha protegida! 🧊',
+          streakResult.freezesUsed === 1
+            ? 'Usamos un protector de racha para salvar tu racha del día que no publicaste.'
+            : `Usamos ${streakResult.freezesUsed} protectores de racha para salvar tu racha.`
+        );
+      }
 
-    const myQ = query(
-      collection(db, 'posts'),
-      where('uid', '==', user.uid),
-      where('date', '==', today)
-    );
-    const mySnap = await getDocs(myQ);
-    setMyPost(mySnap.empty ? null : { id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
-
-    if (friends.length > 0) {
-      // Firestore's 'in' operator only supports up to 10 values, so friends
-      // are queried in chunks of 10 and merged/re-sorted client-side.
-      const friendChunks = [];
-      for (let i = 0; i < friends.length; i += 10) friendChunks.push(friends.slice(i, i + 10));
-
-      const fSnaps = await Promise.all(friendChunks.map(chunk => getDocs(query(
+      const myQ = query(
         collection(db, 'posts'),
-        where('uid', 'in', chunk),
-        where('date', '==', today),
-        orderBy('createdAt', 'desc')
-      ))));
-      const posts = fSnaps
-        .flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
-        .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+        where('uid', '==', user.uid),
+        where('date', '==', today)
+      );
+      const mySnap = await getDocs(myQ);
+      setMyPost(mySnap.empty ? null : { id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
 
-      // Enriquecer con avatar si el post no lo tiene guardado
-      const enriched = await Promise.all(posts.map(async p => {
-        if (p.avatar) return p;
-        const uSnap = await getDoc(doc(db, 'users', p.uid));
-        return { ...p, avatar: uSnap.data()?.avatar ?? null };
-      }));
-      setFriendPosts(enriched);
+      if (friends.length > 0) {
+        // Firestore's 'in' operator only supports up to 10 values, so friends
+        // are queried in chunks of 10 and merged/re-sorted client-side.
+        const friendChunks = [];
+        for (let i = 0; i < friends.length; i += 10) friendChunks.push(friends.slice(i, i + 10));
 
-      // Cargar conteo de comentarios por slot
-      const counts = {};
-      const allPosts = [...enriched];
-      if (mySnap.docs.length > 0) allPosts.push({ id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
-      const slots = ['morning', 'afternoon', 'night'];
-      await Promise.all(allPosts.flatMap(p =>
-        slots.map(async s => {
-          try {
-            const q2 = query(collection(db, 'posts', p.id, 'comments'), where('slot', '==', s));
-            const snap = await getCountFromServer(q2);
-            counts[`${p.id}_${s}`] = snap.data().count;
-          } catch { counts[`${p.id}_${s}`] = 0; }
-        })
-      ));
-      setCommentCounts(counts);
-    } else {
-      setFriendPosts([]);
+        const fSnaps = await Promise.all(friendChunks.map(chunk => getDocs(query(
+          collection(db, 'posts'),
+          where('uid', 'in', chunk),
+          where('date', '==', today),
+          orderBy('createdAt', 'desc')
+        ))));
+        const posts = fSnaps
+          .flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
+          .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+
+        // Enriquecer con avatar si el post no lo tiene guardado
+        const enriched = await Promise.all(posts.map(async p => {
+          if (p.avatar) return p;
+          const uSnap = await getDoc(doc(db, 'users', p.uid));
+          return { ...p, avatar: uSnap.data()?.avatar ?? null };
+        }));
+        setFriendPosts(enriched);
+      } else {
+        setFriendPosts([]);
+      }
+    } catch (e) {
+      Alert.alert('Error cargando tu feed', e.message);
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (user) loadData().finally(() => setLoading(false));
+    if (user) loadData();
   }, [user]);
 
   // Recargar al volver a la pantalla para tener reacciones y avatares actualizados
@@ -200,7 +201,7 @@ export default function HomeScreen() {
                   postId={myPost.id}
                   postOwnerUid={user.uid}
                   reactions={myPost.reactions?.[key] ?? {}}
-                  commentCount={commentCounts[`${myPost.id}_${key}`] ?? 0}
+                  commentCount={myPost.commentCounts?.[key] ?? 0}
                 />
               ) : null
             )
@@ -246,7 +247,7 @@ export default function HomeScreen() {
                       postId={post.id}
                       postOwnerUid={post.uid}
                       reactions={post.reactions?.[key] ?? {}}
-                      commentCount={commentCounts[`${post.id}_${key}`] ?? 0}
+                      commentCount={post.commentCounts?.[key] ?? 0}
                     />
                   ) : null
                 )}

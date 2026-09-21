@@ -10,7 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  collection, getDocs, doc, getDoc, query, where, orderBy,
+  collection, getDocs, doc, getDoc, query, where, orderBy, limit,
   updateDoc, arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -87,11 +87,13 @@ export default function FriendsScreen() {
       const lastSeen = parseInt(await AsyncStorage.getItem(`activity_seen_${uid}`) ?? '0', 10);
       const items = [];
 
-      // Reacciones en mis posts
+      // Reacciones en mis posts (solo las publicaciones recientes, para no
+      // arrastrar reacciones de todo el historial en cada carga)
       const myPostsSnap = await getDocs(query(
         collection(db, 'posts'),
         where('uid', '==', uid),
-        orderBy('createdAt', 'desc')
+        orderBy('createdAt', 'desc'),
+        limit(30)
       ));
       const myPosts = myPostsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -147,7 +149,8 @@ export default function FriendsScreen() {
         const fPostsSnap = await getDocs(query(
           collection(db, 'posts'),
           where('uid', 'in', friendIds.slice(0, 10)),
-          orderBy('createdAt', 'desc')
+          orderBy('createdAt', 'desc'),
+          limit(100)
         ));
         fPostsSnap.docs.filter(d => d.data().date >= sevenDaysAgoStr).forEach(d => {
           const p = { id: d.id, ...d.data() };
@@ -185,11 +188,16 @@ export default function FriendsScreen() {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
-      const snap = await getDocs(collection(db, 'users'));
       const term = searchQuery.trim().toLowerCase();
+      const snap = await getDocs(query(
+        collection(db, 'users'),
+        where('displayNameLower', '>=', term),
+        where('displayNameLower', '<=', term + ''),
+        limit(20)
+      ));
       const results = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(u => u.id !== uid && u.displayName?.toLowerCase().includes(term));
+        .filter(u => u.id !== uid);
       setSearchResults(results);
     } catch {
       Alert.alert('Error buscando usuarios');
