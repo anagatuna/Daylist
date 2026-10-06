@@ -6,6 +6,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BlurView } from 'expo-blur';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NO_EDGES } from '@/constants/SafeArea';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -193,7 +194,7 @@ export default function ProfileScreen() {
   if (!user) return null;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={[]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={NO_EDGES}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <FlatList
         data={filterDate ? (filteredPost ? [filteredPost] : []) : posts}

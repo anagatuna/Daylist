@@ -107,8 +107,11 @@ const styles = StyleSheet.create({
   sheetWeb: {
     maxHeight: '92dvh',
   },
+  // maxHeight también: el '92%' heredado de `sheet` Safari lo calcula sobre el
+  // alto ya resuelto de la hoja y la recorta un 8% más, dejándola flotando.
   sheetFullWeb: {
     height: '92dvh',
+    maxHeight: '92dvh',
   },
   handle: {
     width: 36,
