@@ -320,6 +320,18 @@ export default function EditProfileScreen() {
             )}
           </View>
 
+          <View style={styles.spotifySection}>
+            <Text style={[styles.label, { color: colors.textMuted }]}>ARTISTAS FAVORITOS</Text>
+            <TouchableOpacity
+              onPress={() => router.push('/favorite-artists')}
+              activeOpacity={0.85}
+              style={[styles.spotifyConnectBtn, { borderColor: colors.primary }]}
+            >
+              <Ionicons name="musical-notes-outline" size={18} color={colors.primary} />
+              <Text style={[styles.spotifyConnectText, { color: colors.primary }]}>Elegir artistas favoritos</Text>
+            </TouchableOpacity>
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
 

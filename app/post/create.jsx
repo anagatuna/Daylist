@@ -7,13 +7,15 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { searchSpotifyTracks, serializeSpotifyTrack } from '@/lib/spotify';
 import { fetchTopArtists } from '@/lib/spotifyAuth';
-import { useSpotifyAuth, friendlySpotifyError } from '@/hooks/useSpotifyAuth';
+import { searchItunesTracks } from '@/lib/itunes';
+import { fetchArtistScores } from '@/lib/artistTaste';
+import { useSpotifyAuth } from '@/hooks/useSpotifyAuth';
 import { notifyFriends, cancelStreakReminder } from '@/lib/notifications';
 import { localDateStr, isSlotOpen, slotStartLabel } from '@/lib/date';
 import { getLyrics, isSectionMarker, normalizeLyricLine } from '@/lib/musixmatch';
@@ -44,6 +46,7 @@ export default function CreatePostScreen() {
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [topArtistIds, setTopArtistIds] = useState([]);
+  const [artistScores, setArtistScores] = useState(() => new Map());
   const [phraseModal, setPhraseModal] = useState(null);
   const [phrase, setPhrase] = useState('');
   const [lyricModal, setLyricModal] = useState(null); // slot key
@@ -94,10 +97,6 @@ export default function CreatePostScreen() {
     loadToday();
   }, []);
 
-  useEffect(() => {
-    if (spotify.error) Alert.alert('Error de Spotify', friendlySpotifyError(spotify.error));
-  }, [spotify.error]);
-
   // Artistas más escuchados, para priorizarlos en la búsqueda cuando el nombre es genérico
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -107,24 +106,34 @@ export default function CreatePostScreen() {
       .catch(() => {});
   }, [spotify.connected]);
 
+  // Sin Spotify, la búsqueda se personaliza con los artistas favoritos y los ya posteados
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    fetchArtistScores(uid).then(setArtistScores).catch(() => {});
+  }, []);
+
   // Búsqueda automática con debounce al escribir
   useEffect(() => {
     if (!searchQuery.trim()) { setResults([]); return; }
     const uid = auth.currentUser?.uid;
     if (!uid) return;
+    let cancelled = false;
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
-        const tracks = await searchSpotifyTracks(uid, searchQuery, topArtistIds);
-        setResults(tracks);
+        let tracks = spotify.connected ? await searchSpotifyTracks(uid, searchQuery, topArtistIds) : [];
+        // Sin Spotify (o si su búsqueda no devolvió nada) se busca en iTunes
+        if (tracks.length === 0) tracks = await searchItunesTracks(searchQuery, artistScores);
+        if (!cancelled) setResults(tracks);
       } catch {
         // silencioso
       } finally {
-        setSearching(false);
+        if (!cancelled) setSearching(false);
       }
     }, 400);
-    return () => clearTimeout(timer);
-  }, [searchQuery, topArtistIds]);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [searchQuery, topArtistIds, artistScores, spotify.connected]);
 
   function selectTrack(track) {
     const serialized = serializeSpotifyTrack(track);
@@ -282,35 +291,6 @@ export default function CreatePostScreen() {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: colors.bg }]}>
         <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (!spotify.connected) {
-    return (
-      <View style={[styles.container, styles.centerContent, { backgroundColor: colors.bg }]}>
-        <View style={styles.connectGate}>
-          <MaterialCommunityIcons name="spotify" size={48} color={colors.spotify} />
-          <Text style={[styles.connectTitle, { color: colors.textPrimary }]}>Conecta tu Spotify</Text>
-          <Text style={[styles.connectSubtitle, { color: colors.textMuted }]}>
-            Necesitamos tu cuenta de Spotify para buscar canciones y armar tu Daylist.
-          </Text>
-          <TouchableOpacity
-            onPress={spotify.connect}
-            disabled={spotify.connecting}
-            activeOpacity={0.85}
-            style={[styles.spotifyConnectBtn, { borderColor: colors.spotify }]}
-          >
-            {spotify.connecting ? (
-              <ActivityIndicator color={colors.spotify} />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="spotify" size={18} color={colors.spotify} />
-                <Text style={[styles.spotifyConnectText, { color: colors.spotify }]}>Conectar con Spotify</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
       </View>
     );
   }
@@ -587,14 +567,6 @@ export default function CreatePostScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
   centerContent: { alignItems: 'center', justifyContent: 'center' },
-  connectGate: { alignItems: 'center', paddingHorizontal: 32, gap: 8 },
-  connectTitle: { fontSize: 20, fontWeight: '700', marginTop: 8 },
-  connectSubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 8 },
-  spotifyConnectBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1.5, borderRadius: Radius.pill, paddingVertical: 14, paddingHorizontal: 24, marginTop: 8,
-  },
-  spotifyConnectText: { fontSize: 15, fontWeight: '700' },
   editBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: Radius.md, padding: 10, marginBottom: 16, borderWidth: 1 },
   editBannerText: { fontSize: 13, fontWeight: '600' },
   scroll: { padding: 20, paddingBottom: 120 },
