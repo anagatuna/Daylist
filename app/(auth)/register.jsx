@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Animated, StatusBar, Pressable, Keyboard, TouchableWithoutFeedback,
+  Animated, StatusBar, Pressable,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import DismissKeyboard from '@/components/DismissKeyboard';
 import { auth, db } from '@/lib/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { Radius, Shadow } from '@/constants/Theme';
@@ -119,7 +120,7 @@ export default function RegisterScreen() {
       <View style={[styles.orb1, { backgroundColor: colors.secondary }]} />
       <View style={[styles.orb2, { backgroundColor: colors.primary }]} />
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <DismissKeyboard>
         <KeyboardAvoidingView style={styles.inner} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
           <Animated.View style={[styles.logoContainer, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
@@ -219,7 +220,7 @@ export default function RegisterScreen() {
             </Link>
           </Animated.View>
         </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+      </DismissKeyboard>
 
       <Dialog visible={dialog.visible} title="Aviso" message={dialog.message} onClose={() => setDialog({ visible: false, message: '' })} buttons={[{ text: 'Entendido', style: 'primary' }]} />
       <Dialog visible={verificationSent} title="Verifica tu correo" message={`Se envió un enlace de verificación a ${email.trim()}. Ábrelo y luego inicia sesión.`} onClose={() => { setVerificationSent(false); router.replace('/(auth)/login'); }} buttons={[{ text: 'Ir a iniciar sesión', style: 'primary' }]} />

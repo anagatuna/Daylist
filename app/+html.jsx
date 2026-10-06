@@ -35,6 +35,9 @@ body {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
+input, textarea {
+  outline: none;
+}
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #1A1620;

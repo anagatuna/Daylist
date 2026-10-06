@@ -155,7 +155,7 @@ export default function EditProfileScreen() {
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickImage} disabled={uploading} activeOpacity={0.85}>
               {avatar ? (
-                <Image source={{ uri: avatar }} style={styles.avatarImg} />
+                <Image source={{ uri: avatar }} style={[styles.avatarImg, Platform.OS === 'web' && { shadowOffset: null }]} />
               ) : (
                 <LinearGradient colors={Colors.gradientPrimary} style={styles.avatarPlaceholder} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                   <Text style={styles.avatarInitial}>{displayName?.[0]?.toUpperCase() ?? '?'}</Text>

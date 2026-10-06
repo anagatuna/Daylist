@@ -3,13 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   Image, StyleSheet, ActivityIndicator, Alert, ScrollView,
-  Keyboard, TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
+import DismissKeyboard from '@/components/DismissKeyboard';
 import { auth, db } from '@/lib/firebase';
 import { searchSpotifyTracks, serializeSpotifyTrack } from '@/lib/spotify';
 import { fetchTopArtists } from '@/lib/spotifyAuth';
@@ -297,7 +298,7 @@ export default function CreatePostScreen() {
 
   if (activeSlot) {
     return (
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <DismissKeyboard>
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <View style={styles.searchHeader}>
           <TouchableOpacity
@@ -354,7 +355,7 @@ export default function CreatePostScreen() {
           )}
         />
       </View>
-      </TouchableWithoutFeedback>
+      </DismissKeyboard>
     );
   }
 
@@ -460,7 +461,7 @@ export default function CreatePostScreen() {
 
       {/* Phrase modal */}
       <SheetModal visible={!!phraseModal} onClose={() => { Keyboard.dismiss(); setPhraseModal(null); }}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <DismissKeyboard>
           <View style={[styles.modal, { backgroundColor: colors.bg }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Agregar frase</Text>
@@ -484,7 +485,7 @@ export default function CreatePostScreen() {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </TouchableWithoutFeedback>
+        </DismissKeyboard>
       </SheetModal>
 
       <StreakCelebration

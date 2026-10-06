@@ -67,6 +67,9 @@ function AndroidSheet({ visible, onClose, children, fullHeight }) {
             styles.sheet,
             { borderColor: colors.glass.border, borderWidth: 1, borderBottomWidth: 0 },
             fullHeight && styles.sheetFull,
+            // En web los porcentajes no tienen contra qué medirse (el contenedor
+            // no tiene alto fijo) y la hoja crecía más que la pantalla.
+            Platform.OS === 'web' && (fullHeight ? styles.sheetFullWeb : styles.sheetWeb),
             fullHeight
               ? { paddingTop: 0, paddingBottom: insets.bottom || 16 }
               : { paddingTop: 8, paddingBottom: insets.bottom || 16 },
@@ -100,6 +103,12 @@ const styles = StyleSheet.create({
   },
   sheetFull: {
     height: '92%',
+  },
+  sheetWeb: {
+    maxHeight: '92dvh',
+  },
+  sheetFullWeb: {
+    height: '92dvh',
   },
   handle: {
     width: 36,
