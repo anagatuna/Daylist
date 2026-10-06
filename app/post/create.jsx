@@ -7,15 +7,17 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { searchSpotifyTracks, serializeSpotifyTrack } from '@/lib/spotify';
 import { fetchTopArtists } from '@/lib/spotifyAuth';
-import { useSpotifyAuth, friendlySpotifyError } from '@/hooks/useSpotifyAuth';
+import { searchItunesTracks } from '@/lib/itunes';
+import { fetchArtistScores } from '@/lib/artistTaste';
+import { useSpotifyAuth } from '@/hooks/useSpotifyAuth';
 import { notifyFriends, cancelStreakReminder } from '@/lib/notifications';
-import { localDateStr } from '@/lib/date';
+import { localDateStr, isSlotOpen, slotStartLabel } from '@/lib/date';
 import { getLyrics, isSectionMarker, normalizeLyricLine } from '@/lib/musixmatch';
 import { BlurView } from 'expo-blur';
 import AudioPlayer from '@/components/AudioPlayer';
@@ -44,6 +46,7 @@ export default function CreatePostScreen() {
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [topArtistIds, setTopArtistIds] = useState([]);
+  const [artistScores, setArtistScores] = useState(() => new Map());
   const [phraseModal, setPhraseModal] = useState(null);
   const [phrase, setPhrase] = useState('');
   const [lyricModal, setLyricModal] = useState(null); // slot key
@@ -55,6 +58,16 @@ export default function CreatePostScreen() {
   const [streakCount, setStreakCount] = useState(0);
   const [freezeAwarded, setFreezeAwarded] = useState(false);
   const [freezesUsed, setFreezesUsed] = useState(0);
+  const [now, setNow] = useState(() => new Date());
+  // Slots que ya estaban guardados hoy (para no bloquear posts hechos antes de los horarios)
+  const savedSlots = useRef(new Set());
+
+  // Re-evaluar cada 30s qué horarios están abiertos (por si la pantalla queda abierta al cambiar de hora)
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   // Cargar post de hoy si ya existe
   useEffect(() => {
     async function loadToday() {
@@ -75,6 +88,7 @@ export default function CreatePostScreen() {
           night: data.songs?.night ?? null,
         };
         setSongs(loaded);
+        savedSlots.current = new Set(Object.keys(loaded).filter(k => loaded[k]));
         if (loaded.morning && loaded.afternoon && loaded.night) {
           setAlreadyPosted(true);
         }
@@ -82,10 +96,6 @@ export default function CreatePostScreen() {
     }
     loadToday();
   }, []);
-
-  useEffect(() => {
-    if (spotify.error) Alert.alert('Error de Spotify', friendlySpotifyError(spotify.error));
-  }, [spotify.error]);
 
   // Artistas más escuchados, para priorizarlos en la búsqueda cuando el nombre es genérico
   useEffect(() => {
@@ -96,24 +106,34 @@ export default function CreatePostScreen() {
       .catch(() => {});
   }, [spotify.connected]);
 
+  // Sin Spotify, la búsqueda se personaliza con los artistas favoritos y los ya posteados
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    fetchArtistScores(uid).then(setArtistScores).catch(() => {});
+  }, []);
+
   // Búsqueda automática con debounce al escribir
   useEffect(() => {
     if (!searchQuery.trim()) { setResults([]); return; }
     const uid = auth.currentUser?.uid;
     if (!uid) return;
+    let cancelled = false;
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
-        const tracks = await searchSpotifyTracks(uid, searchQuery, topArtistIds);
-        setResults(tracks);
+        let tracks = spotify.connected ? await searchSpotifyTracks(uid, searchQuery, topArtistIds) : [];
+        // Sin Spotify (o si su búsqueda no devolvió nada) se busca en iTunes
+        if (tracks.length === 0) tracks = await searchItunesTracks(searchQuery, artistScores);
+        if (!cancelled) setResults(tracks);
       } catch {
         // silencioso
       } finally {
-        setSearching(false);
+        if (!cancelled) setSearching(false);
       }
     }, 400);
-    return () => clearTimeout(timer);
-  }, [searchQuery, topArtistIds]);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [searchQuery, topArtistIds, artistScores, spotify.connected]);
 
   function selectTrack(track) {
     const serialized = serializeSpotifyTrack(track);
@@ -181,6 +201,15 @@ export default function CreatePostScreen() {
 
     const filled = SLOTS.filter((sl) => songs[sl.key]);
     if (filled.length === 0) return Alert.alert('Agrega al menos una canción');
+
+    // No permitir publicar canciones de un horario que todavía no empieza
+    const early = filled.find((sl) => !isSlotOpen(sl.key) && !savedSlots.current.has(sl.key));
+    if (early) {
+      return Alert.alert(
+        'Todavía no',
+        `La canción de la ${early.label.toLowerCase()} se puede agregar a partir de las ${slotStartLabel(early.key)}.`
+      );
+    }
 
     const user = auth.currentUser;
     if (!user) return;
@@ -262,35 +291,6 @@ export default function CreatePostScreen() {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: colors.bg }]}>
         <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (!spotify.connected) {
-    return (
-      <View style={[styles.container, styles.centerContent, { backgroundColor: colors.bg }]}>
-        <View style={styles.connectGate}>
-          <MaterialCommunityIcons name="spotify" size={48} color={colors.spotify} />
-          <Text style={[styles.connectTitle, { color: colors.textPrimary }]}>Conecta tu Spotify</Text>
-          <Text style={[styles.connectSubtitle, { color: colors.textMuted }]}>
-            Necesitamos tu cuenta de Spotify para buscar canciones y armar tu Daylist.
-          </Text>
-          <TouchableOpacity
-            onPress={spotify.connect}
-            disabled={spotify.connecting}
-            activeOpacity={0.85}
-            style={[styles.spotifyConnectBtn, { borderColor: colors.spotify }]}
-          >
-            {spotify.connecting ? (
-              <ActivityIndicator color={colors.spotify} />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="spotify" size={18} color={colors.spotify} />
-                <Text style={[styles.spotifyConnectText, { color: colors.spotify }]}>Conectar con Spotify</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
       </View>
     );
   }
@@ -422,6 +422,15 @@ export default function CreatePostScreen() {
                     </View>
                   ) : null}
                 </View>
+              </View>
+            ) : !isSlotOpen(key, now) ? (
+              <View style={[styles.addBtn, styles.lockedBtn, { borderColor: colors.border }]}>
+                <View style={[styles.addIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                  <Ionicons name="lock-closed" size={16} color={colors.textMuted} />
+                </View>
+                <Text style={[styles.lockedText, { color: colors.textMuted }]}>
+                  Disponible a partir de las {slotStartLabel(key)}
+                </Text>
               </View>
             ) : (
               <View style={[styles.cardShadow, { backgroundColor: colors.bg, shadowColor: colors.primary, shadowOpacity: 0.10 }]}>
@@ -558,14 +567,6 @@ export default function CreatePostScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
   centerContent: { alignItems: 'center', justifyContent: 'center' },
-  connectGate: { alignItems: 'center', paddingHorizontal: 32, gap: 8 },
-  connectTitle: { fontSize: 20, fontWeight: '700', marginTop: 8 },
-  connectSubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 8 },
-  spotifyConnectBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1.5, borderRadius: Radius.pill, paddingVertical: 14, paddingHorizontal: 24, marginTop: 8,
-  },
-  spotifyConnectText: { fontSize: 15, fontWeight: '700' },
   editBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: Radius.md, padding: 10, marginBottom: 16, borderWidth: 1 },
   editBannerText: { fontSize: 13, fontWeight: '600' },
   scroll: { padding: 20, paddingBottom: 120 },
@@ -577,6 +578,8 @@ const styles = StyleSheet.create({
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: Radius.lg, padding: 16, borderWidth: 1, overflow: 'hidden' },
   addIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   addBtnText: { fontSize: 15, fontWeight: '600' },
+  lockedBtn: { borderStyle: 'dashed', opacity: 0.7 },
+  lockedText: { fontSize: 14, fontWeight: '500', flex: 1 },
 
   selectedCard: { borderRadius: Radius.lg, padding: 14, borderWidth: 1, overflow: 'hidden' },
   selectedRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },

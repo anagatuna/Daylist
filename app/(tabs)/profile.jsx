@@ -219,12 +219,15 @@ export default function ProfileScreen() {
                   <Ionicons name="pencil-outline" size={15} color={colors.primary} />
                   <Text style={[styles.editBtnText, { color: colors.primary }]}>Editar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.bellBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.38)', borderColor: 'transparent' }]}
-                  onPress={() => setShowReminder(true)}
-                >
-                  <Ionicons name={reminderTime ? 'notifications' : 'notifications-outline'} size={18} color={reminderTime ? colors.primary : colors.textMuted} />
-                </TouchableOpacity>
+                {/* El recordatorio diario es una notificación local programada: no existe en web */}
+                {Platform.OS !== 'web' && (
+                  <TouchableOpacity
+                    style={[styles.bellBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.38)', borderColor: 'transparent' }]}
+                    onPress={() => setShowReminder(true)}
+                  >
+                    <Ionicons name={reminderTime ? 'notifications' : 'notifications-outline'} size={18} color={reminderTime ? colors.primary : colors.textMuted} />
+                  </TouchableOpacity>
+                )}
               </View>
 
               <AvatarPreview uri={avatar} size={72} initial={user.displayName?.[0]} style={styles.avatarImg} />
@@ -376,20 +379,30 @@ export default function ProfileScreen() {
       {Platform.OS === 'android' && showPicker && (
         <DateTimePicker value={pickerDate} mode="date" onChange={onChangeDate} />
       )}
-      {Platform.OS === 'ios' && (
+      {Platform.OS !== 'android' && (
         <Modal visible={showPicker} transparent animationType="fade">
           <Pressable style={styles.datePickerBackdrop} onPress={() => setShowPicker(false)}>
             <Pressable style={[styles.datePickerCard, { borderColor: colors.glass.border }]}>
               <BlurView tint={colors.glass.tint} intensity={colors.glass.intensity} experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
               <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass.overlayStrong }]} />
               <Text style={[styles.datePickerTitle, { color: colors.textPrimary }]}>Buscar por fecha</Text>
-              <DateTimePicker
-                value={pickerDate}
-                mode="date"
-                display="spinner"
-                onChange={onChangeDate}
-                textColor={colors.textPrimary}
-              />
+              {Platform.OS === 'web' ? (
+                <input
+                  type="date"
+                  value={localDateStr(pickerDate)}
+                  max={localDateStr()}
+                  onChange={(e) => { if (e.target.value) setPickerDate(new Date(`${e.target.value}T12:00:00`)); }}
+                  style={{ fontSize: 17, padding: 12, margin: '8px 20px 16px', borderRadius: 12, border: `1px solid ${colors.border}`, background: colors.card, color: colors.textPrimary, colorScheme: isDark ? 'dark' : 'light' }}
+                />
+              ) : (
+                <DateTimePicker
+                  value={pickerDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={onChangeDate}
+                  textColor={colors.textPrimary}
+                />
+              )}
               <View style={[styles.datePickerActions, { borderTopColor: colors.border }]}>
                 <TouchableOpacity style={styles.datePickerCancelBtn} onPress={() => setShowPicker(false)}>
                   <Text style={[styles.datePickerCancelText, { color: colors.textMuted }]}>Cancelar</Text>

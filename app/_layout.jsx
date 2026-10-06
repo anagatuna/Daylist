@@ -1,13 +1,16 @@
 import { useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import * as Updates from 'expo-updates';
+import '@/lib/webAlert';
 import { useAuth } from '@/hooks/useAuth';
 import { registerPushToken, scheduleStreakReminder } from '@/lib/notifications';
 import { runStreakMigration } from '@/lib/migrateStreaks';
 import { migrateCommentCounts } from '@/lib/migrateCommentCounts';
 import { migrateDisplayNameLower } from '@/lib/migrateDisplayNameLower';
+import { needsArtistOnboarding } from '@/lib/artistTaste';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -67,6 +70,9 @@ function RootNav() {
     migrateCommentCounts().catch(() => {});
     migrateDisplayNameLower().catch(() => {});
     scheduleStreakReminder().catch(() => {});
+    needsArtistOnboarding(user.uid)
+      .then(needs => { if (needs) router.push('/favorite-artists'); })
+      .catch(() => {});
 
     notificationListener.current = Notifications.addNotificationReceivedListener(() => {});
 
@@ -94,6 +100,7 @@ function RootNav() {
       <Stack.Screen name="post/create" options={{ presentation: 'modal', headerShown: true, title: 'Nueva publicación', ...headerTheme }} />
       <Stack.Screen name="user/[uid]" options={{ headerShown: false }} />
       <Stack.Screen name="stats" options={{ headerShown: false }} />
+      <Stack.Screen name="favorite-artists" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Editar perfil', presentation: 'modal', ...headerTheme }} />
     </Stack>
   );
@@ -102,6 +109,8 @@ function RootNav() {
 export default function RootLayout() {
   useEffect(() => {
     applyPendingUpdate();
+    // expo-router deja un <title> vacío antes del de +html y el navegador usa el primero
+    if (Platform.OS === 'web') document.title = 'Daylist';
   }, []);
 
   return (

@@ -51,7 +51,8 @@ export default function SongCard({ song, slot, postId, postOwnerUid, reactions, 
     const q = encodeURIComponent(`${song.name} ${song.artist}`);
     const deep = `spotify:search:${q}`;
     const web = `https://open.spotify.com/search/${q}`;
-    const can = await Linking.canOpenURL(deep);
+    // En web canOpenURL siempre dice que sí; el enlace https abre la app si está instalada
+    const can = Platform.OS !== 'web' && await Linking.canOpenURL(deep);
     Linking.openURL(can ? deep : web);
   }
 
