@@ -10,12 +10,15 @@ export default function AvatarPreview({ uri, size = 72, initial, style }) {
   const [visible, setVisible] = useState(false);
 
   const avatarStyle = [{ width: size, height: size, borderRadius: size / 2 }, style];
+  // En web la sombra de una imagen se vuelve un filtro CSS, y en Safari eso
+  // rompe el recorte redondo: la foto sale cuadrada.
+  const imageStyle = Platform.OS === 'web' ? [avatarStyle, { shadowOffset: null }] : avatarStyle;
 
   return (
     <>
       <TouchableOpacity onPress={() => uri && setVisible(true)} activeOpacity={uri ? 0.8 : 1}>
         {uri ? (
-          <Image source={{ uri }} style={avatarStyle} />
+          <Image source={{ uri }} style={imageStyle} />
         ) : (
           <LinearGradient colors={colors.gradientPrimary} style={avatarStyle} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={styles.initialWrapper}>

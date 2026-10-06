@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Animated, StatusBar, Pressable, Keyboard, TouchableWithoutFeedback,
+  Animated, StatusBar, Pressable,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
+import DismissKeyboard from '@/components/DismissKeyboard';
 import { auth } from '@/lib/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { Radius, Shadow } from '@/constants/Theme';
@@ -118,7 +119,7 @@ export default function LoginScreen() {
       <View style={[styles.orb1, { backgroundColor: colors.primary }]} />
       <View style={[styles.orb2, { backgroundColor: colors.secondary }]} />
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <DismissKeyboard>
         <KeyboardAvoidingView style={styles.inner} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
           {/* Logo */}
@@ -187,7 +188,7 @@ export default function LoginScreen() {
             </Link>
           </Animated.View>
         </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+      </DismissKeyboard>
 
       <Dialog visible={dialog.visible} title="Aviso" message={dialog.message} onClose={() => setDialog({ visible: false, message: '' })} buttons={[{ text: 'Entendido', style: 'primary' }]} />
       <Dialog visible={resetSent} title="Correo enviado" message={`Se envió un enlace para restablecer tu contraseña a ${email.trim()}. Revisa tu bandeja de entrada.`} onClose={() => setResetSent(false)} buttons={[{ text: 'Entendido', style: 'primary' }]} />
