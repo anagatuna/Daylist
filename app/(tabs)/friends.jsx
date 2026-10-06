@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NO_EDGES } from '@/constants/SafeArea';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -344,7 +345,7 @@ export default function FriendsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={[]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={NO_EDGES}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {/* Tabs */}

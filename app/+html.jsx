@@ -17,7 +17,8 @@ export default function Root({ children }) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="Daylist" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        {/* black-translucent: la app se dibuja también bajo la barra de estado, como en la app nativa */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#1A1620" media="(prefers-color-scheme: dark)" />
 
