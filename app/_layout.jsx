@@ -7,9 +7,6 @@ import * as Updates from 'expo-updates';
 import '@/lib/webAlert';
 import { useAuth } from '@/hooks/useAuth';
 import { registerPushToken, scheduleStreakReminder } from '@/lib/notifications';
-import { runStreakMigration } from '@/lib/migrateStreaks';
-import { migrateCommentCounts } from '@/lib/migrateCommentCounts';
-import { migrateDisplayNameLower } from '@/lib/migrateDisplayNameLower';
 import { needsArtistOnboarding } from '@/lib/artistTaste';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
@@ -66,9 +63,6 @@ function RootNav() {
     if (!user) return;
 
     registerPushToken(user.uid).catch(() => {});
-    runStreakMigration().catch(() => {});
-    migrateCommentCounts().catch(() => {});
-    migrateDisplayNameLower().catch(() => {});
     scheduleStreakReminder().catch(() => {});
     needsArtistOnboarding(user.uid)
       .then(needs => { if (needs) router.push('/favorite-artists'); })

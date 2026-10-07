@@ -7,8 +7,10 @@ async function ensureUserDocument(user) {
   const ref = doc(db, 'users', user.uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
+    const displayName = user.displayName ?? user.email?.split('@')[0] ?? 'Usuario';
     await setDoc(ref, {
-      displayName: user.displayName ?? user.email?.split('@')[0] ?? 'Usuario',
+      displayName,
+      displayNameLower: displayName.toLowerCase(),
       email: user.email,
       avatar: null,
       createdAt: serverTimestamp(),

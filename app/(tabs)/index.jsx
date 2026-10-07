@@ -96,13 +96,13 @@ export default function HomeScreen() {
           .flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
           .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
 
-        // Enriquecer con avatar si el post no lo tiene guardado
-        const enriched = await Promise.all(posts.map(async p => {
-          if (p.avatar) return p;
-          const uSnap = await getDoc(doc(db, 'users', p.uid));
-          return { ...p, avatar: uSnap.data()?.avatar ?? null };
-        }));
-        setFriendPosts(enriched);
+        // El avatar vive en el perfil, no en el post: una lectura por autor
+        const authorIds = [...new Set(posts.filter(p => !p.avatar).map(p => p.uid))];
+        const avatars = Object.fromEntries(await Promise.all(authorIds.map(async id => {
+          const uSnap = await getDoc(doc(db, 'users', id));
+          return [id, uSnap.data()?.avatar ?? null];
+        })));
+        setFriendPosts(posts.map(p => (p.avatar ? p : { ...p, avatar: avatars[p.uid] ?? null })));
       } else {
         setFriendPosts([]);
       }
