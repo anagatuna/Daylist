@@ -55,12 +55,8 @@ export default function HomeScreen() {
   async function loadData() {
     if (!user) return;
     try {
-      const [userDoc, streakResult] = await Promise.all([
-        getDoc(doc(db, 'users', user.uid)),
-        syncStreakToProfile(user.uid),
-      ]);
-      const userData = userDoc.data() ?? {};
-      const friends = userData.friends ?? [];
+      const streakResult = await syncStreakToProfile(user.uid);
+      const friends = streakResult.userData.friends ?? [];
       setStreak(streakResult.current);
       setStreakFreezes(streakResult.streakFreezes);
       if (streakResult.freezesUsed > 0) {

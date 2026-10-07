@@ -261,9 +261,10 @@ export default function CreatePostScreen() {
 
       // Notificar solo los slots nuevos y marcarlos como notificados
       if (friends.length > 0 && newSlots.length > 0) {
-        await notifyFriends(user.uid, user.displayName, friends, newSlots);
-        const updated = [...alreadyNotified, ...newSlots];
-        await AsyncStorage.setItem(notifKey, JSON.stringify(updated));
+        // En segundo plano: lee el perfil de cada amigo y no debe frenar la vuelta al feed
+        notifyFriends(user.uid, user.displayName, friends, newSlots)
+          .then(() => AsyncStorage.setItem(notifKey, JSON.stringify([...alreadyNotified, ...newSlots])))
+          .catch(() => {});
       }
 
       const justCompleted = songData.morning && songData.afternoon && songData.night;
