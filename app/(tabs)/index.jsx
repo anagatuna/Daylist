@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Platform, ScrollView, StatusBar, StyleSheet, Text, View,
   TouchableOpacity, ActivityIndicator, RefreshControl, Image, Alert,
@@ -13,6 +13,8 @@ import { db } from '@/lib/firebase';
 import { localDateStr } from '@/lib/date';
 import { syncStreakToProfile } from '@/lib/streak';
 import { useAuth } from '@/hooks/useAuth';
+import { mark, bootReport } from '@/lib/bootLog';
+import { stripPostAvatars } from '@/lib/postAvatars';
 import { TrackBlock } from '@/components/TrackBlock';
 import SongCard from '@/components/SongCard';
 import StreakBadge from '@/components/StreakBadge';
@@ -54,8 +56,10 @@ export default function HomeScreen() {
 
   async function loadData() {
     if (!user) return;
+    mark('feed: inicio');
     try {
       const streakResult = await syncStreakToProfile(user.uid);
+      mark('feed: racha lista');
       const friends = streakResult.userData.friends ?? [];
       setStreak(streakResult.current);
       setStreakFreezes(streakResult.streakFreezes);
@@ -74,6 +78,7 @@ export default function HomeScreen() {
         where('date', '==', today)
       );
       const mySnap = await getDocs(myQ);
+      mark('feed: mi post');
       setMyPost(mySnap.empty ? null : { id: mySnap.docs[0].id, ...mySnap.docs[0].data() });
 
       if (friends.length > 0) {
@@ -88,6 +93,7 @@ export default function HomeScreen() {
           where('date', '==', today),
           orderBy('createdAt', 'desc')
         ))));
+        fSnaps.forEach(snap => stripPostAvatars(snap.docs));
         const posts = fSnaps
           .flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
           .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
@@ -105,8 +111,18 @@ export default function HomeScreen() {
     } catch (e) {
       Alert.alert('Error cargando tu feed', e.message);
     } finally {
+      mark('feed: listo');
       setLoading(false);
     }
+  }
+
+  // Diagnóstico temporal: 5 toques en el logo muestran los tiempos de arranque
+  const logoTaps = useRef(0);
+  function onLogoPress() {
+    logoTaps.current += 1;
+    if (logoTaps.current < 5) return;
+    logoTaps.current = 0;
+    Alert.alert('Diagnóstico', bootReport());
   }
 
   useEffect(() => {
@@ -163,7 +179,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <Text style={[styles.logo, { color: colors.textPrimary }]}>daylist</Text>
+            <Text onPress={onLogoPress} suppressHighlighting style={[styles.logo, { color: colors.textPrimary }]}>daylist</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <StreakBadge streak={streak} size="sm" showLabel={false} />
               <StreakFreezeBadge count={streakFreezes} size="sm" />

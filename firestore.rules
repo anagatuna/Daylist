@@ -64,7 +64,10 @@ service cloud.firestore {
       // solo reactions (reaccionar) o commentCounts (comentar en posts ajenos)
       allow update: if isOwner(resource.data.uid)
                     || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']))
-                    || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCounts']));
+                    || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCounts']))
+                    // Limpieza: cualquiera puede quitar (nunca poner) la copia vieja del avatar
+                    || (isAuth() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatar'])
+                        && !('avatar' in request.resource.data));
       allow delete: if isOwner(resource.data.uid);
 
       match /comments/{commentId} {

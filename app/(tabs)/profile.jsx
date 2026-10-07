@@ -393,7 +393,7 @@ export default function ProfileScreen() {
                   value={localDateStr(pickerDate)}
                   max={localDateStr()}
                   onChange={(e) => { if (e.target.value) setPickerDate(new Date(`${e.target.value}T12:00:00`)); }}
-                  style={{ fontSize: 17, padding: 12, margin: '8px 20px 16px', borderRadius: 12, border: `1px solid ${colors.border}`, background: colors.card, color: colors.textPrimary, colorScheme: isDark ? 'dark' : 'light' }}
+                  style={{ position: 'relative', fontSize: 17, padding: 12, margin: '8px 20px 16px', borderRadius: 12, border: `1px solid ${colors.border}`, background: colors.card, color: colors.textPrimary, colorScheme: isDark ? 'dark' : 'light' }}
                 />
               ) : (
                 <DateTimePicker
