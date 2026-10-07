@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -20,16 +20,37 @@ async function ensureUserDocument(user) {
   }
 }
 
+// Una sola suscripción compartida: antes cada componente que usaba el hook
+// (pantallas, cada tarjeta de canción…) abría la suya y releía el documento del
+// usuario, y al remontar una pantalla el usuario volvía a "cargando".
+let currentUser; // undefined hasta que Firebase resuelve la sesión
+let ensuredUid = null;
+let started = false;
+const listeners = new Set();
+
+function start() {
+  if (started) return;
+  started = true;
+  onAuthStateChanged(auth, async (u) => {
+    if (u && u.uid !== ensuredUid) {
+      await ensureUserDocument(u).catch(() => {});
+      ensuredUid = u.uid;
+    }
+    currentUser = u;
+    listeners.forEach(notify => notify());
+  });
+}
+
+function subscribe(notify) {
+  start();
+  listeners.add(notify);
+  return () => listeners.delete(notify);
+}
+
+const getUser = () => currentUser;
+const getServerUser = () => undefined;
+
 export function useAuth() {
-  const [user, setUser] = useState(undefined);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (u) await ensureUserDocument(u).catch(() => {});
-      setUser(u);
-    });
-    return unsub;
-  }, []);
-
+  const user = useSyncExternalStore(subscribe, getUser, getServerUser);
   return { user, loading: user === undefined };
 }
