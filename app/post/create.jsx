@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc, deleteField } from 'firebase/firestore';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import { auth, db } from '@/lib/firebase';
 import { searchSpotifyTracks, serializeSpotifyTrack } from '@/lib/spotify';
@@ -233,7 +233,6 @@ export default function CreatePostScreen() {
       });
 
       const userDoc2 = await getDoc(doc(db, 'users', user.uid));
-      const avatar = userDoc2.data()?.avatar ?? null;
       const friends = userDoc2.data()?.friends ?? [];
 
       // Slots que ya fueron notificados hoy (persiste en AsyncStorage)
@@ -245,14 +244,14 @@ export default function CreatePostScreen() {
       if (existingDoc) {
         await updateDoc(doc(db, 'posts', existingDoc.id), {
           songs: songData,
-          avatar,
+          // El avatar (base64) ya no se copia al post: pesaba en cada lectura
+          avatar: deleteField(),
           updatedAt: serverTimestamp(),
         });
       } else {
         await addDoc(collection(db, 'posts'), {
           uid: user.uid,
           displayName: user.displayName,
-          avatar,
           date: today,
           songs: songData,
           createdAt: serverTimestamp(),

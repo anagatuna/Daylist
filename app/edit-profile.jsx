@@ -16,6 +16,30 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useSpotifyAuth, friendlySpotifyError } from '@/hooks/useSpotifyAuth';
 import Dialog from '@/components/Dialog';
 
+const AVATAR_SIZE = 256;
+
+// En web el picker ignora `quality` y `allowsEditing` y devuelve la foto
+// original; se recorta al centro y se reduce antes de guardarla en Firestore.
+function shrinkAvatarWeb(uri) {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = AVATAR_SIZE;
+      canvas.height = AVATAR_SIZE;
+      canvas.getContext('2d').drawImage(
+        img,
+        (img.width - side) / 2, (img.height - side) / 2, side, side,
+        0, 0, AVATAR_SIZE, AVATAR_SIZE
+      );
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    img.src = uri;
+  });
+}
+
 export default function EditProfileScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
@@ -118,7 +142,8 @@ export default function EditProfileScreen() {
         base64: true,
       });
       if (result.canceled || !result.assets?.[0]?.base64) return;
-      setAvatar(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      const picked = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setAvatar(Platform.OS === 'web' ? await shrinkAvatarWeb(result.assets[0].uri ?? picked) : picked);
     } catch (e) {
       showAlert('Error procesando imagen', e.message);
     } finally {

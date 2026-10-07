@@ -160,7 +160,7 @@ export default function FriendsScreen() {
             key: `post-${p.id}`,
             type: 'post',
             displayName: p.displayName,
-            avatar: p.avatar ?? null,
+            avatar: activeFriends.find(f => f.id === p.uid)?.avatar ?? p.avatar ?? null,
             uid: p.uid,
             postId: p.id,
             postDate: p.date,
