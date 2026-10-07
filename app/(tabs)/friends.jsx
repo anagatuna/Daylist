@@ -17,6 +17,7 @@ import {
 import { db } from '@/lib/firebase';
 import { localDateStr } from '@/lib/date';
 import { useAuth } from '@/hooks/useAuth';
+import { stripPostAvatars } from '@/lib/postAvatars';
 import { useRouter } from 'expo-router';
 import { notifyFriendRequest } from '@/lib/notifications';
 import { Colors, Radius, Shadow } from '@/constants/Theme';
@@ -153,6 +154,7 @@ export default function FriendsScreen() {
           orderBy('createdAt', 'desc'),
           limit(100)
         ));
+        stripPostAvatars(fPostsSnap.docs);
         fPostsSnap.docs.filter(d => d.data().date >= sevenDaysAgoStr).forEach(d => {
           const p = { id: d.id, ...d.data() };
           const slots = Object.keys(p.songs ?? {}).filter(k => p.songs[k]);

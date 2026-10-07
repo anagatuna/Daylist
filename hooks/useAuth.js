@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { mark } from '@/lib/bootLog';
 
 async function ensureUserDocument(user) {
   const ref = doc(db, 'users', user.uid);
@@ -32,9 +33,11 @@ function start() {
   if (started) return;
   started = true;
   onAuthStateChanged(auth, async (u) => {
+    mark(u ? 'sesión resuelta' : 'sin sesión');
     if (u && u.uid !== ensuredUid) {
       await ensureUserDocument(u).catch(() => {});
       ensuredUid = u.uid;
+      mark('perfil verificado');
     }
     currentUser = u;
     listeners.forEach(notify => notify());

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '@/constants/Theme';
+import { mark } from '@/lib/bootLog';
 
 const THEME_KEY = '@daylist_theme';
 
@@ -15,6 +16,7 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     AsyncStorage.getItem(THEME_KEY).then(val => {
       if (val === 'light' || val === 'dark') setPreference(val);
+      mark('tema listo');
       setLoaded(true);
     });
   }, []);

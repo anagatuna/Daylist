@@ -9,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { doc, getDoc, collection, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { stripPostAvatars } from '@/lib/postAvatars';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import SongCard from '@/components/SongCard';
@@ -72,6 +73,7 @@ export default function UserProfileScreen() {
         )),
         getCountFromServer(query(collection(db, 'posts'), where('uid', '==', uid))),
       ]);
+      stripPostAvatars(postsSnap.docs);
       setProfile({ id: uid, ...userDoc.data() });
       setIsFriend((myDoc.data()?.friends ?? []).includes(uid));
       const loadedPosts = postsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -97,6 +99,7 @@ export default function UserProfileScreen() {
         startAfter(lastDoc),
         limit(PAGE_SIZE)
       ));
+      stripPostAvatars(snap.docs);
       const newPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setPosts(p => [...p, ...newPosts]);
       setLastDoc(snap.docs[snap.docs.length - 1] ?? lastDoc);
@@ -130,6 +133,7 @@ export default function UserProfileScreen() {
         where('uid', '==', uid),
         where('date', '==', localDateStr(date))
       ));
+      stripPostAvatars(snap.docs);
       setFilteredPost(snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() });
     } finally {
       setFilterLoading(false);
@@ -308,7 +312,7 @@ export default function UserProfileScreen() {
                   value={localDateStr(pickerDate)}
                   max={localDateStr()}
                   onChange={(e) => { if (e.target.value) setPickerDate(new Date(`${e.target.value}T12:00:00`)); }}
-                  style={{ fontSize: 17, padding: 12, margin: '8px 20px 16px', borderRadius: 12, border: `1px solid ${colors.border}`, background: colors.card, color: colors.textPrimary, colorScheme: isDark ? 'dark' : 'light' }}
+                  style={{ position: 'relative', fontSize: 17, padding: 12, margin: '8px 20px 16px', borderRadius: 12, border: `1px solid ${colors.border}`, background: colors.card, color: colors.textPrimary, colorScheme: isDark ? 'dark' : 'light' }}
                 />
               ) : (
                 <DateTimePicker
